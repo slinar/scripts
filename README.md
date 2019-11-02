@@ -9,3 +9,4 @@ ifelse没啥技术含量,写的也不是很好但是能用,使用前请确保网
 |文件|描述|
 |---|---
 |python3.7.sh|一键安装openssl-1.1.1d和python-3.7.5
+|openssh.sh|一键安装openssl-1.1.1d和openssh-8.1p1
