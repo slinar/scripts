@@ -9,4 +9,4 @@
 |文件|描述|
 |---|---
 |python3.7.sh|一键安装openssl-1.1.1d和python-3.7.5
-|openssh.sh|一键升级openssl-1.1.1d和openssh-8.1p1
+|openssh.sh|一键安装openssl-1.1.1d和openssh-8.1p1
