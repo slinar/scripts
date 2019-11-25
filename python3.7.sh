@@ -65,7 +65,7 @@ install_python(){
     ln -s /usr/local/python3.7/bin/python3.7 /usr/bin/python3.7
     ln -s /usr/local/python3.7/bin/pip3.7 /usr/bin/pip3.7
     pip3.7 install --upgrade pip
-    python3.7 -c 'import ssl; print(ssl.OPENSSL_VERSION)'
+    python3.7 -c 'import ssl; print(ssl.OPENSSL_VERSION); print(ssl.get_default_verify_paths())'
 }
 
 echo
