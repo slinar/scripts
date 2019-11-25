@@ -1,9 +1,6 @@
 #!/bin/bash
-yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
-yum clean all && yum makecache
-yum -y install gcc wget perl make pam-devel
-yum -y install zlib-devel bzip2-devel readline-devel sqlite-devel openssl-devel ncurses-devel xz-devel gdbm-devel libffi-devel
 openssl_ver="openssl-1.1.1d"
+
 install_openssl(){
     if [ -f /usr/local/${openssl_ver}/bin/openssl ];then
         echo "${openssl_ver} already exists!"
@@ -40,6 +37,10 @@ install_openssl(){
 }
 
 install_python(){
+    if [ -f /usr/local/python3.7/bin/python3.7 ];then
+        echo "python3.7 already exists!"
+        exit 1
+    fi
     cd /tmp
     if [ ! -f Python-3.7.5.tgz ];then
         wget https://www.python.org/ftp/python/3.7.5/Python-3.7.5.tgz
@@ -67,9 +68,20 @@ install_python(){
     python3.7 -c 'import ssl; print(ssl.OPENSSL_VERSION)'
 }
 
-if [ -f /usr/local/python3.7/bin/python3.7 ];then
-    echo "python3.7 already exists!"
-    exit 1
-fi
-install_openssl
-install_python
+echo
+echo "openssl = ${openssl_ver}"
+echo
+read -r -p "Are you sure you want to continue? [y/n]" input
+case $input in
+    "y")
+        yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
+        yum clean all && yum makecache
+        yum -y install gcc wget perl make pam-devel
+        yum -y install zlib-devel bzip2-devel readline-devel sqlite-devel openssl-devel ncurses-devel xz-devel gdbm-devel libffi-devel
+        install_openssl
+        install_python
+        ;;
+    *)
+        exit 1
+        ;;
+esac
