@@ -25,7 +25,8 @@ install_zlib(){
     [ $? -ne 0 ] && echo "Failed to configure zlib!" && exit 1
     make
     make install
-    sed -i '$a\/usr/local/zlib-1.2.11/lib' /etc/ld.so.conf
+    c=$( grep -x "/usr/local/zlib-1.2.11/lib" /etc/ld.so.conf|wc -l )
+    [ ${c} -eq 0 ] && sed -i '$a\/usr/local/zlib-1.2.11/lib' /etc/ld.so.conf
     ldconfig
 }
 
@@ -54,7 +55,8 @@ install_openssl(){
     [ $? -ne 0 ] && echo "Failed to config openssl!" && exit 1
     make
     make install
-    sed -i '$a\/usr/local/'${openssl_ver}'/lib' /etc/ld.so.conf
+    c=$( grep -x "/usr/local/${openssl_ver}/lib" /etc/ld.so.conf|wc -l )
+    [ ${c} -eq 0 ] && sed -i '$a\/usr/local/'${openssl_ver}'/lib' /etc/ld.so.conf
     ldconfig
     rm -rf /usr/local/${openssl_ver}/ssl/certs
     ln -s /etc/pki/tls/certs /usr/local/${openssl_ver}/ssl/certs
@@ -145,10 +147,12 @@ install_openssh(){
     chown root:root /etc/ssh/ssh_host_rsa_key
     chown root:root /etc/ssh/ssh_host_ecdsa_key
     chown root:root /etc/ssh/ssh_host_ed25519_key
+    chown root:root /etc/ssh/ssh_host_dsa_key
     chmod 755 /etc/init.d/sshd
     chmod 600 /etc/ssh/ssh_host_rsa_key
     chmod 600 /etc/ssh/ssh_host_ecdsa_key
     chmod 600 /etc/ssh/ssh_host_ed25519_key
+    chmod 600 /etc/ssh/ssh_host_dsa_key
     chkconfig --add sshd
     chkconfig sshd on
     sshd_n=$( ps -ef|grep '/usr/sbin/sshd'|grep -v grep|wc -l )
@@ -167,7 +171,7 @@ echo "openssh = ${openssh_ver}"
 echo "sshd port = ${sshd_port}"
 echo "privilege_separation = ${privilege_separation}"
 echo
-read -r -p "Are you sure you want to continue? [y/n]" input
+read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
         yum -y install gcc wget perl make pam-devel
