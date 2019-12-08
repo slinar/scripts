@@ -29,7 +29,8 @@ install_openssl(){
     fi
     make
     make install
-    sed -i '$a\/usr/local/'${openssl_ver}'/lib' /etc/ld.so.conf
+    c=$( grep -x "/usr/local/${openssl_ver}/lib" /etc/ld.so.conf|wc -l )
+    [ ${c} -eq 0 ] && sed -i '$a\/usr/local/'${openssl_ver}'/lib' /etc/ld.so.conf
     ldconfig
     rm -rf /usr/local/${openssl_ver}/ssl/certs
     ln -s /etc/pki/tls/certs /usr/local/${openssl_ver}/ssl/certs
@@ -60,7 +61,8 @@ install_python(){
     fi
     make
     make install
-    sed -i '$a\/usr/local/python3.7/lib' /etc/ld.so.conf
+    c=$( grep -x "/usr/local/python3.7/lib" /etc/ld.so.conf|wc -l )
+    [ ${c} -eq 0 ] && sed -i '$a\/usr/local/python3.7/lib' /etc/ld.so.conf
     ldconfig
     ln -s /usr/local/python3.7/bin/python3.7 /usr/bin/python3.7
     ln -s /usr/local/python3.7/bin/pip3.7 /usr/bin/pip3.7
@@ -71,7 +73,7 @@ install_python(){
 echo
 echo "openssl = ${openssl_ver}"
 echo
-read -r -p "Are you sure you want to continue? [y/n]" input
+read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
         yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm
