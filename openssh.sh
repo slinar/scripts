@@ -142,6 +142,7 @@ install_openssh(){
     modify_sshdconfig
     modify_iptables
     sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
+    setenforce 0
     cp -rf /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/init.d/sshd
     chown root:root /etc/init.d/sshd
     chown root:root /etc/ssh/ssh_host_rsa_key
