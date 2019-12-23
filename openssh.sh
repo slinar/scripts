@@ -19,6 +19,7 @@ install_zlib(){
         fi
     fi
     tar xzf zlib-1.2.11.tar.gz
+    [ $? -ne 0 ] && echo "zlib-1.2.11.tar.gz Unpacking failed!" && exit 1
     cd zlib-1.2.11
     chmod +x configure
     ./configure --prefix=/usr/local/zlib-1.2.11
@@ -49,6 +50,7 @@ install_openssl(){
         fi
     fi
     tar xzf ${openssl_ver}.tar.gz
+    [ $? -ne 0 ] && echo "${openssl_ver}.tar.gz Unpacking failed!" && exit 1
     cd ${openssl_ver}
     chmod +x config
     ./config --prefix=/usr/local/${openssl_ver} --openssldir=/usr/local/${openssl_ver}/ssl -fPIC
@@ -122,6 +124,7 @@ install_openssh(){
         fi
     fi
     tar xzf ${openssh_ver}.tar.gz
+    [ $? -ne 0 ] && echo "${openssh_ver}.tar.gz Unpacking failed!" && exit 1
     cd ${openssh_ver}
     chmod +x configure
     if [ ${privilege_separation} == "0" ];then
