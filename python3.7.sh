@@ -43,7 +43,7 @@ install_openssl(){
 install_python(){
     cd /tmp
     if [ ! -f Python-${python_ver}.tgz ];then
-        wget https://www.python.org/ftp/python/${python_ver}/Python-${python_ver}.tgz
+        wget https://npm.taobao.org/mirrors/python/${python_ver}/Python-${python_ver}.tgz
         if [ $? -ne 0 ];then
             rm -rf Python-${python_ver}.tgz
             echo "Python-${python_ver}.tgz download failed!"
