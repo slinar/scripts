@@ -70,12 +70,14 @@ modify_iptables(){
     iptables -P FORWARD DROP
     iptables -P OUTPUT ACCEPT
     num=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dpt:'${sshd_port}''|grep -v grep|wc -l )
-    num1=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dports.*'${sshd_port}''|grep -v grep|wc -l )
+    num1=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dports.* '${sshd_port}','|grep -v grep|wc -l )
+    [ ${num1} -eq 0 ] && num1=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dports.*,'${sshd_port}','|grep -v grep|wc -l )
+    [ ${num1} -eq 0 ] && num1=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dports.*,'${sshd_port}' '|grep -v grep|wc -l )
     if [[ ${num} -eq 0 && ${num1} -eq 0 ]];then
-        iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport ${sshd_port} -j ACCEPT
+        iptables -I INPUT -p tcp -m tcp --dport ${sshd_port} -j ACCEPT
+        service iptables save
+        service iptables restart
     fi
-    service iptables save
-    service iptables restart
 }
 
 privsep(){
@@ -138,6 +140,7 @@ install_openssh(){
     fi
     make
     [ $? -ne 0 ] && echo "Failed to make openssh!" && exit 1
+    trap "" 2
     uninstall_old_openssh
     make install
     cp -f /tmp/sshd_pam /etc/pam.d/sshd
@@ -184,6 +187,7 @@ case $input in
         install_openssh
         ;;
     *)
+        echo
         exit 1
         ;;
 esac
