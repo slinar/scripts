@@ -54,7 +54,7 @@ install_python(){
     [ $? -ne 0 ] && echo "Python-${python_ver}.tgz Unpacking failed!" && exit 1
     cd Python-${python_ver}
     chmod u+x configure
-    ./configure --prefix=/usr/local/python${python_major} --enable-shared CFLAGS=-fPIC --with-openssl=/usr/local/${openssl_ver}
+    ./configure --prefix=/usr/local/python${python_major} --enable-shared CFLAGS=-fPIC --enable-optimizations --with-openssl=/usr/local/${openssl_ver}
     if [ $? -ne 0 ];then
         echo "Failed to configure python${python_ver}!"
         exit 1
@@ -75,6 +75,9 @@ echo "openssl = ${openssl_ver}"
 echo "python = Python-${python_ver}"
 echo "install path = /usr/local/python${python_major}"
 echo
+unalias cp
+unalias rm
+unalias mv
 read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")

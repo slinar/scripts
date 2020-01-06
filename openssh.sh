@@ -66,14 +66,14 @@ install_openssl(){
 }
 
 modify_iptables(){
-    iptables -P INPUT DROP
-    iptables -P FORWARD DROP
-    iptables -P OUTPUT ACCEPT
     num=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dpt:'${sshd_port}''|grep -v grep|wc -l )
-    num1=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dports.* '${sshd_port}','|grep -v grep|wc -l )
-    [ ${num1} -eq 0 ] && num1=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dports.*,'${sshd_port}','|grep -v grep|wc -l )
-    [ ${num1} -eq 0 ] && num1=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dports.*,'${sshd_port}' '|grep -v grep|wc -l )
-    if [[ ${num} -eq 0 && ${num1} -eq 0 ]];then
+    [ ${num} -eq 0 ] && num=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dports.* '${sshd_port}','|grep -v grep|wc -l )
+    [ ${num} -eq 0 ] && num=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dports.*,'${sshd_port}','|grep -v grep|wc -l )
+    [ ${num} -eq 0 ] && num=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dports.*,'${sshd_port}' '|grep -v grep|wc -l )
+    if [ ${num} -eq 0 ];then
+        iptables -P INPUT DROP
+        iptables -P FORWARD DROP
+        iptables -P OUTPUT ACCEPT
         iptables -I INPUT -p tcp -m tcp --dport ${sshd_port} -j ACCEPT
         service iptables save
         service iptables restart
@@ -109,7 +109,8 @@ modify_sshdconfig(){
 
 uninstall_old_openssh(){
     cp -f /etc/pam.d/sshd /tmp/sshd_pam
-    yum -y remove openssh-server openssh
+    git --version || yum -y remove openssh
+    yum -y remove openssh-server
     rm -rf /etc/ssh/moduli
     rm -rf /etc/ssh/ssh_config
     rm -rf /etc/ssh/sshd_config
@@ -178,6 +179,9 @@ echo "openssh = ${openssh_ver}"
 echo "sshd port = ${sshd_port}"
 echo "privilege_separation = ${privilege_separation}"
 echo
+unalias cp
+unalias rm
+unalias mv
 read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
