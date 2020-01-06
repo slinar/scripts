@@ -75,9 +75,6 @@ echo "openssl = ${openssl_ver}"
 echo "python = Python-${python_ver}"
 echo "install path = /usr/local/python${python_major}"
 echo
-unalias cp
-unalias rm
-unalias mv
 read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")

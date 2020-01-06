@@ -179,9 +179,6 @@ echo "openssh = ${openssh_ver}"
 echo "sshd port = ${sshd_port}"
 echo "privilege_separation = ${privilege_separation}"
 echo
-unalias cp
-unalias rm
-unalias mv
 read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
