@@ -1,8 +1,11 @@
 #!/bin/bash
+# Recently updated: 2020/1/11 21:30
+
 openssl_ver="openssl-1.1.1d"
 openssh_ver="openssh-8.1p1"
+pam="0"
 sshd_port=$( netstat -lnp|grep sshd|grep -vE 'grep|unix|:::'|awk '{print $4}'|awk -F':' '{print $2}' )
-privilege_separation="1"
+[ -z "${sshd_port}" ] && sshd_port="22"
 
 install_zlib(){
     if [ -f /usr/local/zlib-1.2.11/lib/libz.a ];then
@@ -95,29 +98,57 @@ privsep(){
         groupadd sshd
         useradd -g sshd -c 'sshd privsep' -d /var/empty/sshd -s /sbin/nologin sshd
     fi
-    ./configure --prefix=/usr --sysconfdir=/etc/ssh --with-ssl-dir=/usr/local/${openssl_ver} --with-zlib=/usr/local/zlib-1.2.11 --with-md5-passwords --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd
-    [ $? -ne 0 ] && echo "Failed to configure openssh!" && exit 1
+}
+
+modify_sshd_pam(){
+    [ ${pam} == "0" ] && rm -f /etc/pam.d/sshd && return
+    cat > /etc/pam.d/sshd<<EOF
+#%PAM-1.0
+auth	   required	pam_sepermit.so
+auth       include      password-auth
+account    required     pam_nologin.so
+account    include      password-auth
+password   include      password-auth
+# pam_selinux.so close should be the first session rule
+session    required     pam_selinux.so close
+session    required     pam_loginuid.so
+# pam_selinux.so open should only be followed by sessions to be executed in the user context
+session    required     pam_selinux.so open env_params
+session    required     pam_namespace.so
+session    optional     pam_keyinit.so force revoke
+session    include      password-auth
+EOF
+    chown root:root /etc/pam.d/sshd
+    chmod 644 /etc/pam.d/sshd
 }
 
 modify_sshdconfig(){
     sed -i 's/#Port 22/Port '${sshd_port}'/' /etc/ssh/sshd_config
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
     sed -i 's/#UseDNS no/UseDNS no/' /etc/ssh/sshd_config
+    [ ${pam} == "1" ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config
     sed -i 's/#TCPKeepAlive yes/TCPKeepAlive yes/' /etc/ssh/sshd_config
     sed -i 's/#ClientAliveInterval 0/ClientAliveInterval 60/' /etc/ssh/sshd_config
 }
 
-uninstall_old_openssh(){
-    cp -f /etc/pam.d/sshd /tmp/sshd_pam
-    git --version || yum -y remove openssh
-    yum -y remove openssh-server
-    rm -rf /etc/ssh/moduli
-    rm -rf /etc/ssh/ssh_config
-    rm -rf /etc/ssh/sshd_config
+modify_selinux(){
+    sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
+    setenforce 0
 }
 
-install_openssh(){
-    cd /tmp
+uninstall_old_openssh(){
+    cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak >/dev/null 2>&1
+    git --version >/dev/null 2>&1
+    [ $? -eq 127 ] && yum -y remove openssh
+    yum -y remove openssh-server
+    chkconfig --del sshd
+    rm -f /etc/ssh/moduli
+    rm -f /etc/ssh/ssh_config
+    rm -f /etc/ssh/sshd_config
+    rm -f /etc/rc.d/init.d/sshd
+}
+
+download_openssh(){
     if [ ! -f ${openssh_ver}.tar.gz ];then
         wget https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz
         if [ $? -ne 0 ];then
@@ -129,14 +160,24 @@ install_openssh(){
     tar xzf ${openssh_ver}.tar.gz
     [ $? -ne 0 ] && echo "${openssh_ver}.tar.gz Unpacking failed!" && exit 1
     cd ${openssh_ver}
-    chmod +x configure
-    if [ ${privilege_separation} == "0" ];then
-        ./configure --prefix=/usr --sysconfdir=/etc/ssh --with-ssl-dir=/usr/local/${openssl_ver} --with-zlib=/usr/local/zlib-1.2.11 --with-md5-passwords
+    [ $? -ne 0 ] && echo "cd ${openssh_ver} failed!" && exit 1
+    chmod 744 configure
+    [ $? -ne 0 ] && exit 1
+}
+
+install_openssh(){
+    cd /tmp
+    download_openssh
+    privsep
+    if [ ${pam} == "0" ];then
+        ./configure --prefix=/usr --sysconfdir=/etc/ssh --with-ssl-dir=/usr/local/${openssl_ver} --with-zlib=/usr/local/zlib-1.2.11 --with-md5-passwords --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd
         [ $? -ne 0 ] && echo "Failed to configure openssh!" && exit 1
-    elif [ ${privilege_separation} == "1" ];then
-        privsep
+    elif [ ${pam} == "1" ];then
+        ./configure --prefix=/usr --sysconfdir=/etc/ssh --with-ssl-dir=/usr/local/${openssl_ver} --with-zlib=/usr/local/zlib-1.2.11 --with-md5-passwords --with-pam --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd
+        [ $? -ne 0 ] && echo "Failed to configure openssh!" && exit 1
+        
     else
-        echo 'privilege_separation value error! 0 or 1'
+        echo 'pam value error! 0 or 1'
         exit 1
     fi
     make
@@ -144,27 +185,25 @@ install_openssh(){
     trap "" 2
     uninstall_old_openssh
     make install
-    cp -f /tmp/sshd_pam /etc/pam.d/sshd
-    [ -z "${sshd_port}" ] && sshd_port="22"
     modify_sshdconfig
     modify_iptables
-    sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
-    setenforce 0
-    cp -rf /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/init.d/sshd
-    chown root:root /etc/init.d/sshd
+    modify_sshd_pam
+    modify_selinux
+    cp -f /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
+    chown root:root /etc/rc.d/init.d/sshd
     chown root:root /etc/ssh/ssh_host_rsa_key
     chown root:root /etc/ssh/ssh_host_ecdsa_key
     chown root:root /etc/ssh/ssh_host_ed25519_key
     chown root:root /etc/ssh/ssh_host_dsa_key
-    chmod 755 /etc/init.d/sshd
+    chmod 755 /etc/rc.d/init.d/sshd
     chmod 600 /etc/ssh/ssh_host_rsa_key
     chmod 600 /etc/ssh/ssh_host_ecdsa_key
     chmod 600 /etc/ssh/ssh_host_ed25519_key
     chmod 600 /etc/ssh/ssh_host_dsa_key
     chkconfig --add sshd
     chkconfig sshd on
-    sshd_n=$( ps -ef|grep '/usr/sbin/sshd'|grep -v grep|wc -l )
-    if [ ${sshd_n} -eq 0 ];then
+    count=$( ps -ef|grep '/usr/sbin/sshd'|grep -v grep|wc -l )
+    if [ ${count} -eq 0 ];then
         service sshd start
     else
         service sshd restart
@@ -177,7 +216,8 @@ echo
 echo "openssl = ${openssl_ver}"
 echo "openssh = ${openssh_ver}"
 echo "sshd port = ${sshd_port}"
-echo "privilege_separation = ${privilege_separation}"
+echo "pam = ${pam}"
+echo "Backup: /etc/pam.d/sshd /etc/pam.d/sshd_bak"
 echo
 read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
