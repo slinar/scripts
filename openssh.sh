@@ -1,5 +1,5 @@
 #!/bin/bash
-# Recently updated: 2020/1/11 21:30
+# Recently updated: 2020/1/11 21:43
 
 openssl_ver="openssl-1.1.1d"
 openssh_ver="openssh-8.1p1"
@@ -175,7 +175,6 @@ install_openssh(){
     elif [ ${pam} == "1" ];then
         ./configure --prefix=/usr --sysconfdir=/etc/ssh --with-ssl-dir=/usr/local/${openssl_ver} --with-zlib=/usr/local/zlib-1.2.11 --with-md5-passwords --with-pam --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd
         [ $? -ne 0 ] && echo "Failed to configure openssh!" && exit 1
-        
     else
         echo 'pam value error! 0 or 1'
         exit 1
