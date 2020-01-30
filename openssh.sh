@@ -1,6 +1,5 @@
 #!/bin/bash
-# Recently updated: 2020/1/31 3:30
-set -e
+# Recently updated: 2020/1/31 4:25
 
 openssl_ver="openssl-1.1.1d"
 openssh_ver="openssh-8.1p1"
@@ -137,10 +136,8 @@ modify_selinux(){
 
 uninstall_old_openssh(){
     cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak >/dev/null 2>&1
-    set +e
     git --version >/dev/null 2>&1
     [ $? -eq 127 ] && yum -y remove openssh
-    set -e
     yum -y remove openssh-server
     chkconfig --del sshd
     rm -f /etc/ssh/moduli
@@ -151,16 +148,15 @@ uninstall_old_openssh(){
 
 download_openssh(){
     if [ ! -f ${openssh_ver}.tar.gz ];then
-        wget https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz
         if ! wget "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz";then
             rm -rf ${openssh_ver}.tar.gz
             echo "${openssh_ver}.tar.gz download failed!"
             exit 1
         fi
     fi
-    tar xzf ${openssh_ver}.tar.gz || exit 1
-    cd ${openssh_ver} || exit 1
-    chmod 744 configure || exit 1
+    tar xzf ${openssh_ver}.tar.gz || (echo "tar xzf ${openssh_ver}.tar.gz failed!";exit 1)
+    cd ${openssh_ver} || (echo "cd ${openssh_ver} failed!";exit 1)
+    chmod 744 configure || (echo "chmod 744 configure failed!";exit 1)
 }
 
 install_openssh(){
