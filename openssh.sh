@@ -24,7 +24,7 @@ install_zlib(){
     cd zlib-1.2.11 || exit 1
     chmod 744 configure || exit 1
     ./configure --prefix=/usr/local/zlib-1.2.11 \
-    || (echo "Failed to configure zlib!";exit 1)
+    || { echo "Failed to configure zlib!";exit 1;}
     make
     make install
     local count
@@ -54,7 +54,7 @@ install_openssl(){
     cd ${openssl_ver} || exit 1
     chmod 744 config || exit 1
     ./config --prefix=/usr/local/${openssl_ver} --openssldir=/usr/local/${openssl_ver}/ssl -fPIC \
-    || (echo "Failed to config openssl!";exit 1)
+    || { echo "Failed to config openssl!";exit 1;}
     make
     make install
     local count
@@ -134,6 +134,19 @@ modify_selinux(){
     setenforce 0
 }
 
+modify_permissions(){
+    chown root:root /etc/rc.d/init.d/sshd
+    chown root:root /etc/ssh/ssh_host_rsa_key
+    chown root:root /etc/ssh/ssh_host_ecdsa_key
+    chown root:root /etc/ssh/ssh_host_ed25519_key
+    chown root:root /etc/ssh/ssh_host_dsa_key
+    chmod 755 /etc/rc.d/init.d/sshd
+    chmod 600 /etc/ssh/ssh_host_rsa_key
+    chmod 600 /etc/ssh/ssh_host_ecdsa_key
+    chmod 600 /etc/ssh/ssh_host_ed25519_key
+    chmod 600 /etc/ssh/ssh_host_dsa_key
+}
+
 uninstall_old_openssh(){
     cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak >/dev/null 2>&1
     git --version >/dev/null 2>&1
@@ -154,9 +167,9 @@ download_openssh(){
             exit 1
         fi
     fi
-    tar xzf ${openssh_ver}.tar.gz || (echo "tar xzf ${openssh_ver}.tar.gz failed!";exit 1)
-    cd ${openssh_ver} || (echo "cd ${openssh_ver} failed!";exit 1)
-    chmod 744 configure || (echo "chmod 744 configure failed!";exit 1)
+    tar xzf ${openssh_ver}.tar.gz || { echo "tar xzf ${openssh_ver}.tar.gz failed!";exit 1;}
+    cd ${openssh_ver} || { echo "cd ${openssh_ver} failed!";exit 1;}
+    chmod 744 configure || { echo "chmod 744 configure failed!";exit 1;}
 }
 
 install_openssh(){
@@ -165,33 +178,24 @@ install_openssh(){
     privsep
     if [ ${pam} == "0" ];then
         ./configure --prefix=/usr --sysconfdir=/etc/ssh --with-ssl-dir=/usr/local/${openssl_ver} --with-zlib=/usr/local/zlib-1.2.11 --with-md5-passwords --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd \
-        || (echo "Failed to configure openssh!";exit 1)
+        || { echo "Failed to configure openssh!";exit 1;}
     elif [ ${pam} == "1" ];then
         ./configure --prefix=/usr --sysconfdir=/etc/ssh --with-ssl-dir=/usr/local/${openssl_ver} --with-zlib=/usr/local/zlib-1.2.11 --with-md5-passwords --with-pam --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd \
-        || (echo "Failed to configure openssh!";exit 1)
+        || { echo "Failed to configure openssh!";exit 1;}
     else
         echo 'pam value error! 0 or 1'
         exit 1
     fi
-    make || (echo "Failed to make openssh!";exit 1)
+    make || { echo "Failed to make openssh!";exit 1;}
     trap "" 2
     uninstall_old_openssh
     make install
+    cp -f /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
     modify_sshdconfig
     modify_iptables
     modify_sshd_pam
     modify_selinux
-    cp -f /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
-    chown root:root /etc/rc.d/init.d/sshd
-    chown root:root /etc/ssh/ssh_host_rsa_key
-    chown root:root /etc/ssh/ssh_host_ecdsa_key
-    chown root:root /etc/ssh/ssh_host_ed25519_key
-    chown root:root /etc/ssh/ssh_host_dsa_key
-    chmod 755 /etc/rc.d/init.d/sshd
-    chmod 600 /etc/ssh/ssh_host_rsa_key
-    chmod 600 /etc/ssh/ssh_host_ecdsa_key
-    chmod 600 /etc/ssh/ssh_host_ed25519_key
-    chmod 600 /etc/ssh/ssh_host_dsa_key
+    modify_permissions
     chkconfig --add sshd
     chkconfig sshd on
     local sshd_pid
@@ -202,7 +206,7 @@ install_openssh(){
         service sshd restart
     fi
     sshd_pid=$( pgrep -of '^/usr/sbin/sshd$' )
-    [ -n "${sshd_pid}" ] && echo "Successfully installed ${openssh_ver}!" && ssh -V
+    [ -n "${sshd_pid}" ] && echo "Successfully installed ${openssh_ver}!" && ssh -V && exit 0
 }
 
 echo
