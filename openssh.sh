@@ -14,7 +14,7 @@ install_zlib(){
     fi
     cd /tmp || exit 1
     if [ ! -f zlib-1.2.11.tar.gz ];then
-        if ! wget "https://zlib.net/zlib-1.2.11.tar.gz"; then
+        if ! wget --tries 3 --retry-connrefused -O zlib-1.2.11.tar.gz "https://zlib.net/zlib-1.2.11.tar.gz"; then
             rm -rf zlib-1.2.11.tar.gz
             echo "zlib-1.2.11.tar.gz download failed!"
             exit 1
@@ -44,7 +44,7 @@ install_openssl(){
     fi
     cd /tmp || exit 1
     if [ ! -f ${openssl_ver}.tar.gz ];then
-        if ! wget "https://www.openssl.org/source/${openssl_ver}.tar.gz";then
+        if ! wget --tries 3 --retry-connrefused -O ${openssl_ver}.tar.gz "https://www.openssl.org/source/${openssl_ver}.tar.gz";then
             rm -rf ${openssl_ver}.tar.gz
             echo "${openssl_ver}.tar.gz download failed!"
             exit 1
@@ -161,7 +161,7 @@ uninstall_old_openssh(){
 
 download_openssh(){
     if [ ! -f ${openssh_ver}.tar.gz ];then
-        if ! wget "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz";then
+        if ! wget --tries 3 --retry-connrefused -O ${openssh_ver}.tar.gz "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz";then
             rm -rf ${openssh_ver}.tar.gz
             echo "${openssh_ver}.tar.gz download failed!"
             exit 1
@@ -209,6 +209,12 @@ install_openssh(){
     [ -n "${sshd_pid}" ] && echo "Successfully installed ${openssh_ver}!" && ssh -V && exit 0
 }
 
+clean_tmp(){
+    rm -rf /tmp/zlib-1.2.11
+    rm -rf /tmp/${openssl_ver}
+    rm -rf /tmp/${openssh_ver}
+}
+
 echo
 echo "openssl = ${openssl_ver}"
 echo "openssh = ${openssh_ver}"
@@ -220,6 +226,7 @@ read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
         yum -y install gcc wget perl make pam-devel
+        clean_tmp
         install_openssl
         install_zlib
         install_openssh
