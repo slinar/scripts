@@ -14,4 +14,6 @@
 |nginx|centos 6上的nginx服务脚本
 |nginx.conf|ngx-fancyindex示例配置
 
+nginx.sh中使用了自己的文件服务器,不得不吐槽不挂代理的情况下连接github很不稳定
+
 **注意: 使用openssh.sh脚本的时候建议放在screen(或者类似的其他工具)中执行, 防止升级过程中意外断开ssh连接导致脚本执行终止升级失败.**
