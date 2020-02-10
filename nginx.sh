@@ -73,16 +73,18 @@ install_fancyindex_theme(){
     tar xzf ${fancyindex_theme_ver}.tar.gz || exit 1
     cd ${fancyindex_theme_ver} || exit 1
     service nginx stop
-    [ -d /usr/share/nginx/html ] && cp -rf /usr/share/nginx/html /tmp/html_bak
-    mkdir /usr/share/nginx
+    [ -d /tmp/html_bak ] && rm -rf /tmp/html_bak
+    [ -d /usr/share/nginx/html ] && mv -f /usr/share/nginx/html /tmp/html_bak
+    [ -d /usr/share/nginx ] || mkdir /usr/share/nginx
     mv -f /etc/nginx/html /usr/share/nginx > /dev/null 2>&1
     wget --tries 3 --retry-connrefused -O /etc/nginx/nginx.conf "https://tang.0db.org/nginx.conf"
     cp -rf /tmp/${fancyindex_theme_ver} /usr/share/nginx/html/fancyindex
     service nginx start
-    echo "fancyindex_theme example : http://yourIP:9666"
+    echo "Eexample: http://yourIP:9666"
 }
 
 uninstall_old_nginx(){
+    [ -d /tmp/nginx_bak ] && rm -rf /tmp/nginx_bak
     cp -rf /etc/nginx /tmp/nginx_bak
     yum -y remove nginx
     if service nginx status; then
@@ -138,6 +140,7 @@ configure_nginx(){
     --with-zlib=/tmp/zlib-1.2.11 \
     --with-pcre=/tmp/${pcre_ver} \
     --add-module=/tmp/${fancyindex_ver} \
+    --with-cc-opt='-O2 -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -mtune=generic -fPIC' \
     || { echo "configure ${nginx_ver} failed!";exit 1;}
 }
 
@@ -195,7 +198,8 @@ case $input in
         download_pcre
         download_fancyindex
         install_nginx
-        install_fancyindex_theme
+        # Example: fancyindex_theme
+        # install_fancyindex_theme
         ;;
     *)
         echo
