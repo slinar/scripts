@@ -4,7 +4,6 @@ openssl_ver="openssl-1.1.1d"
 pcre_ver="pcre-8.43"
 nginx_ver="nginx-1.16.1"
 fancyindex_ver="ngx-fancyindex-0.4.3"
-fancyindex_theme_ver="Nginx-Fancyindex-Theme-0.1.7"
 
 download_zlib(){
     cd /tmp || exit 1
@@ -61,44 +60,25 @@ download_fancyindex(){
     cd ${fancyindex_ver} || exit 1
 }
 
-install_fancyindex_theme(){
-    cd /tmp || exit 1
-    if [ ! -f ${fancyindex_theme_ver}.tar.gz ]; then
-        if ! wget --tries 3 --retry-connrefused -O ${fancyindex_theme_ver}.tar.gz "https://tang.0db.org/${fancyindex_theme_ver}.tar.gz"; then
-            rm -f ${fancyindex_theme_ver}.tar.gz
-            echo "${fancyindex_theme_ver}.tar.gz download failed!"
-            exit 1
+uninstall_old_nginx(){
+    [ -d /etc/nginx ] && mv /etc/nginx /etc/nginx_bak
+    yum -y remove nginx
+    rm -rf /etc/nginx
+    [ -d /etc/nginx_bak ] && mv /etc/nginx_bak /etc/nginx
+    if nginx -v; then
+        if service nginx status; then
+            service nginx stop
+        else
+            nginx -s stop > /dev/null 2>&1
+        
         fi
     fi
-    tar xzf ${fancyindex_theme_ver}.tar.gz || exit 1
-    cd ${fancyindex_theme_ver} || exit 1
-    service nginx stop
-    [ -d /tmp/html_bak ] && rm -rf /tmp/html_bak
-    [ -d /usr/share/nginx/html ] && mv -f /usr/share/nginx/html /tmp/html_bak
-    [ -d /usr/share/nginx ] || mkdir /usr/share/nginx
-    mv -f /etc/nginx/html /usr/share/nginx > /dev/null 2>&1
-    wget --tries 3 --retry-connrefused -O /etc/nginx/nginx.conf "https://tang.0db.org/nginx.conf"
-    cp -rf /tmp/${fancyindex_theme_ver} /usr/share/nginx/html/fancyindex
-    service nginx start
-    echo "Eexample: http://yourIP:9666"
-}
-
-uninstall_old_nginx(){
-    [ -d /tmp/nginx_bak ] && rm -rf /tmp/nginx_bak
-    cp -rf /etc/nginx /tmp/nginx_bak
-    yum -y remove nginx
-    if service nginx status; then
-        service nginx stop
-    else
-        pgrep nginx|xargs kill -9
-        rm -f /var/run/nginx.pid
-        rm -f /var/lock/subsys/nginx
-        rm -f /var/run/nginx.lock
-    fi
-    chkconfig|grep nginx|grep -v grep && chkconfig --del nginx
-    rm -rf /etc/nginx
+    chkconfig --del nginx
+    rm -f /var/run/nginx.pid
+    rm -f /var/lock/subsys/nginx
     rm -f /usr/sbin/nginx
     rm -f /etc/rc.d/init.d/nginx
+    rm -rf /var/cache/nginx
 }
 
 # https://nginx.org/en/docs/configure.html
@@ -166,8 +146,10 @@ install_nginx(){
     chown root:root /etc/rc.d/init.d/nginx && chmod 755 /etc/rc.d/init.d/nginx
     chkconfig --add nginx
     chkconfig nginx on
-    service nginx start
-    service nginx status || { echo "Start nginx failed! ";exit 1;}
+    rm -f /etc/nginx/*.default
+    [ -f /var/cache/nginx ] && rm -f /var/cache/nginx
+    [ ! -d /var/cache/nginx ] && mkdir /var/cache/nginx
+    service nginx start && echo "completed!"
 }
 
 clean_tmp(){
@@ -176,7 +158,6 @@ clean_tmp(){
     rm -rf "/tmp/${pcre_ver}"
     rm -rf "/tmp/${fancyindex_ver}"
     rm -f "/tmp/pax_global_header"
-    rm -rf "/tmp/${fancyindex_theme_ver}"
 }
 
 echo
@@ -184,13 +165,11 @@ echo "openssl          : ${openssl_ver}"
 echo "nginx            : ${nginx_ver}"
 echo "pcre             : ${pcre_ver}"
 echo "fancyindex       : ${fancyindex_ver}"
-echo "fancyindex_theme : ${fancyindex_theme_ver}"
-echo "Backup           : /etc/nginx --> /tmp/nginx_bak"
-echo "Backup           : /usr/share/nginx/html --> /tmp/html_bak"
 echo
 read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
+        echo
         yum -y install gcc gcc-c++ perl make pcre-devel openssl-devel zlib-devel
         clean_tmp
         download_openssl
@@ -198,8 +177,6 @@ case $input in
         download_pcre
         download_fancyindex
         install_nginx
-        # Example: fancyindex_theme
-        # install_fancyindex_theme
         ;;
     *)
         echo
