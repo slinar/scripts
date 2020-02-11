@@ -63,7 +63,6 @@ download_fancyindex(){
 uninstall_old_nginx(){
     [ -d /etc/nginx ] && mv /etc/nginx /etc/nginx_bak
     yum -y remove nginx
-    rm -rf /etc/nginx
     [ -d /etc/nginx_bak ] && mv /etc/nginx_bak /etc/nginx
     if nginx -v; then
         if service nginx status; then
