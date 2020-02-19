@@ -1,9 +1,15 @@
 #!/bin/bash
-# Recently updated: 2020/1/31 4:25
+# Recently updated: 2020/2/19 16:20
 
 openssl_ver="openssl-1.1.1d"
-openssh_ver="openssh-8.1p1"
+openssh_ver="openssh-8.2p1"
+
+# Use default sshd_config?(yes:1, no:0)
+new_config="0"
+
+# Enables PAM support?(yes:1, no:0)
 pam="0"
+
 sshd_port=$( netstat -lnp|grep sshd|grep -vE 'grep|unix|:::'|awk '{print $4}'|awk -F':' '{print $2}' )
 [ -z "${sshd_port}" ] && sshd_port="22"
 
@@ -149,13 +155,12 @@ modify_permissions(){
 
 uninstall_old_openssh(){
     cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak >/dev/null 2>&1
-    git --version >/dev/null 2>&1
-    [ $? -eq 127 ] && yum -y remove openssh
+    git --version || yum -y remove openssh
+    mv -f /etc/ssh/ssh_config /etc/ssh/ssh_config_bak > /dev/null 2>&1
+    mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak > /dev/null 2>&1
     yum -y remove openssh-server
     chkconfig --del sshd
     rm -f /etc/ssh/moduli
-    rm -f /etc/ssh/ssh_config
-    rm -f /etc/ssh/sshd_config
     rm -f /etc/rc.d/init.d/sshd
 }
 
@@ -191,7 +196,12 @@ install_openssh(){
     uninstall_old_openssh
     make install
     cp -f /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
-    modify_sshdconfig
+    if test ${new_config} == "0" && /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
+        mv -f /etc/ssh/sshd_config_bak /etc/ssh/sshd_config
+    else
+        modify_sshdconfig
+    fi
+    mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
     modify_iptables
     modify_sshd_pam
     modify_selinux
@@ -199,14 +209,15 @@ install_openssh(){
     chkconfig --add sshd
     chkconfig sshd on
     local sshd_pid
-    sshd_pid=$( pgrep -of '^/usr/sbin/sshd$' )
+    sshd_pid=$( pgrep -ofP "$(cat /proc/sys/kernel/core_uses_pid)" sshd )
     if [ -z "${sshd_pid}" ];then
+        rm -f /var/run/sshd.pid
+        rm -f /var/lock/subsys/sshd
         service sshd start
     else
-        service sshd restart
+        service sshd restart || { kill -9 "${sshd_pid}";rm -f /var/run/sshd.pid;rm -f /var/lock/subsys/sshd;service sshd start;}
     fi
-    sshd_pid=$( pgrep -of '^/usr/sbin/sshd$' )
-    [ -n "${sshd_pid}" ] && echo "Successfully installed ${openssh_ver}!" && ssh -V && exit 0
+    service sshd status && echo "Successfully installed ${openssh_ver}!" && ssh -V && exit 0
 }
 
 clean_tmp(){
@@ -216,11 +227,12 @@ clean_tmp(){
 }
 
 echo
-echo "openssl = ${openssl_ver}"
-echo "openssh = ${openssh_ver}"
-echo "sshd port = ${sshd_port}"
-echo "pam = ${pam}"
-echo "Backup: /etc/pam.d/sshd /etc/pam.d/sshd_bak"
+echo "openssl    : ${openssl_ver}"
+echo "openssh    : ${openssh_ver}"
+echo "sshd_port  : ${sshd_port}"
+echo "pam        : ${pam}"
+echo "new_config : ${new_config}"
+echo "Backup     : /etc/pam.d/sshd /etc/pam.d/sshd_bak"
 echo
 read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
