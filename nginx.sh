@@ -135,7 +135,8 @@ install_nginx(){
     tar xzf ${nginx_ver}.tar.gz || exit 1
     cd ${nginx_ver} || exit 1
     chmod 744 configure || exit 1
-    mkdir /var/cache/nginx
+    [ -f /var/cache/nginx ] && rm -f /var/cache/nginx
+    mkdir -p /var/cache/nginx
     useradd -d /var/cache/nginx -s /sbin/nologin -c 'nginx user' nginx
     configure_nginx
     make || exit $?
@@ -146,8 +147,6 @@ install_nginx(){
     chkconfig --add nginx
     chkconfig nginx on
     rm -f /etc/nginx/*.default
-    [ -f /var/cache/nginx ] && rm -f /var/cache/nginx
-    [ ! -d /var/cache/nginx ] && mkdir /var/cache/nginx
     service nginx start && echo "completed!"
 }
 
