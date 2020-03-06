@@ -196,6 +196,8 @@ install_openssh(){
     uninstall_old_openssh
     make install
     cp -f /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
+    [ ${pam} == "0" ] && sed -i 's/UsePAM yes/#UsePAM no/' /etc/ssh/sshd_config_bak
+    [ ${pam} == "1" ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config_bak
     if test ${new_config} == "0" && /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
         mv -f /etc/ssh/sshd_config_bak /etc/ssh/sshd_config
     else
