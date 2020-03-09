@@ -5,7 +5,7 @@ openssl_ver="openssl-1.1.1d"
 openssh_ver="openssh-8.2p1"
 
 # Use default sshd_config?(yes:1, no:0)
-new_config="0"
+new_config="1"
 
 # Enables PAM support?(yes:1, no:0)
 pam="0"
@@ -155,12 +155,13 @@ modify_permissions(){
 
 uninstall_old_openssh(){
     cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak >/dev/null 2>&1
-    git --version || yum -y remove openssh
     mv -f /etc/ssh/ssh_config /etc/ssh/ssh_config_bak > /dev/null 2>&1
     mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak > /dev/null 2>&1
-    yum -y remove openssh-server
+    #git --version || yum -y remove openssh-clients
+    #yum -y remove openssh-server
     chkconfig --del sshd
     rm -f /etc/ssh/moduli
+    rm -f /etc/ssh/ssh_host_ke*
     rm -f /etc/rc.d/init.d/sshd
 }
 
@@ -196,14 +197,23 @@ install_openssh(){
     uninstall_old_openssh
     make install
     cp -f /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
-    [ ${pam} == "0" ] && sed -i 's/UsePAM yes/#UsePAM no/' /etc/ssh/sshd_config_bak
-    [ ${pam} == "1" ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config_bak
+    if [ ${new_config} == "0" ]; then
+        echo "mod config_bak"
+        [ ${pam} == "0" ] && sed -i 's/UsePAM yes/#UsePAM no/' /etc/ssh/sshd_config_bak
+        [ ${pam} == "1" ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config_bak
+    fi
     if test ${new_config} == "0" && /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
+        echo "old config"
+        rm -f /etc/ssh/sshd_config
+        rm -f /etc/ssh/ssh_config
         mv -f /etc/ssh/sshd_config_bak /etc/ssh/sshd_config
+        mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
     else
+        echo "new config"
+        rm -f /etc/ssh/sshd_config_bak
+        rm -f /etc/ssh/ssh_config_bak
         modify_sshdconfig
     fi
-    mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
     modify_iptables
     modify_sshd_pam
     modify_selinux
@@ -239,6 +249,7 @@ echo
 read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
+        echo
         yum -y install gcc wget perl make pam-devel
         clean_tmp
         install_openssl

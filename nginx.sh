@@ -141,6 +141,7 @@ install_nginx(){
     configure_nginx
     make || exit $?
     uninstall_old_nginx
+    mkdir -p /var/cache/nginx
     make install || exit $?
     wget --tries 3 --retry-connrefused -O /etc/rc.d/init.d/nginx "https://tang.0db.org/nginx" || exit 1
     chown root:root /etc/rc.d/init.d/nginx && chmod 755 /etc/rc.d/init.d/nginx
