@@ -3,7 +3,7 @@
 openssl_ver="openssl-1.1.1d"
 pcre_ver="pcre-8.43"
 nginx_ver="nginx-1.16.1"
-fancyindex_ver="ngx-fancyindex-0.4.3"
+fancyindex_ver="ngx-fancyindex-0.4.4"
 
 download_zlib(){
     cd /tmp || exit 1
@@ -47,7 +47,7 @@ download_pcre(){
     chmod 744 configure || exit 1
 }
 
-download_fancyindex(){
+install_fancyindex(){
     cd /tmp || exit 1
     if [ ! -f ${fancyindex_ver}.tar.gz ];then
         if ! wget --tries 3 --retry-connrefused -O ${fancyindex_ver}.tar.gz "https://tang.0db.org/${fancyindex_ver}.tar.gz"; then
@@ -58,6 +58,19 @@ download_fancyindex(){
     fi
     tar xzf ${fancyindex_ver}.tar.gz || exit 1
     cd ${fancyindex_ver} || exit 1
+    cd /tmp/${nginx_ver} || exit 1
+    echo "src version: $(grep NGINX_VERSION src/core/nginx.h|grep -vE 'grep|/'|awk '{print $3}')"
+    echo -n "current " && nginx -v
+    read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
+    [ "${input}" != "y" ] && echo && exit 1
+    ./configure --with-compat --add-dynamic-module=/tmp/${fancyindex_ver} || { echo "ERROR: configure ${fancyindex_ver} with ${nginx_ver}";exit 1;}
+    make modules || { echo "ERROR: make ${fancyindex_ver} with ${nginx_ver}";exit 1;}
+    [ ! -f objs/ngx_http_fancyindex_module.so ] && echo "ERROR: /tmp/${nginx_ver}/objs/ngx_http_fancyindex_module.so not found!" && exit 1
+    cp -f objs/ngx_http_fancyindex_module.so /usr/lib64/nginx/modules/ngx_http_fancyindex_module.so || exit 1
+    local count
+    count=$(grep load_module /etc/nginx/nginx.conf|grep '/usr/lib64/nginx/modules/ngx_http_fancyindex_module.so'|grep -cv '#')
+    [ "${count}" -eq 0 ] && sed -i '1iload_module /usr/lib64/nginx/modules/ngx_http_fancyindex_module.so;' /etc/nginx/nginx.conf
+    nginx -t && service nginx reload
 }
 
 uninstall_old_nginx(){
@@ -118,7 +131,6 @@ configure_nginx(){
     --with-stream_ssl_preread_module \
     --with-zlib=/tmp/zlib-1.2.11 \
     --with-pcre=/tmp/${pcre_ver} \
-    --add-module=/tmp/${fancyindex_ver} \
     --with-cc-opt='-O2 -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -mtune=generic -fPIC' \
     || { echo "configure ${nginx_ver} failed!";exit 1;}
 }
@@ -159,6 +171,8 @@ clean_tmp(){
     rm -f "/tmp/pax_global_header"
 }
 
+[ "$1" == "index" ] && { install_fancyindex; exit $?;}
+
 echo
 echo "openssl          : ${openssl_ver}"
 echo "nginx            : ${nginx_ver}"
@@ -174,8 +188,8 @@ case $input in
         download_openssl
         download_zlib
         download_pcre
-        download_fancyindex
         install_nginx
+        install_fancyindex
         ;;
     *)
         echo
