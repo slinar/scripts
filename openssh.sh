@@ -1,5 +1,5 @@
 #!/bin/bash
-# Recently updated: 2020/2/19 16:20
+# Recently updated: 2020/3/28 16:40
 
 openssl_ver="openssl-1.1.1d"
 openssh_ver="openssh-8.2p1"
@@ -64,6 +64,7 @@ install_openssl(){
     make
     make install
     local count
+    sed -i '/openssl-1/d' /etc/ld.so.conf
     count=$( grep -xc "/usr/local/${openssl_ver}/lib" /etc/ld.so.conf )
     [ "${count}" -eq 0 ] && sed -i '$a\/usr/local/'${openssl_ver}'/lib' /etc/ld.so.conf
     ldconfig
