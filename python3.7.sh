@@ -1,6 +1,6 @@
 #!/bin/bash
 openssl_ver="openssl-1.1.1d"
-python_ver="3.7.6"
+python_ver="3.7.7"
 python_major=${python_ver:0:3}
 
 install_openssl(){
@@ -39,7 +39,7 @@ install_openssl(){
 install_python(){
     cd /tmp || exit 1
     if [ ! -f Python-${python_ver}.tgz ];then
-        if ! wget --tries 3 --retry-connrefused -O ${python_ver}.tgz https://npm.taobao.org/mirrors/python/${python_ver}/Python-${python_ver}.tgz;then
+        if ! wget --tries 3 --retry-connrefused -O Python-${python_ver}.tgz https://npm.taobao.org/mirrors/python/${python_ver}/Python-${python_ver}.tgz;then
             rm -rf Python-${python_ver}.tgz
             echo "Python-${python_ver}.tgz download failed!"
             exit 1
@@ -75,7 +75,8 @@ echo
 read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
-        yum -y install gcc wget perl make pam-devel
+        echo
+        yum -y install gcc gcc-c++ wget perl make
         yum -y install zlib-devel bzip2-devel readline-devel sqlite-devel openssl-devel ncurses-devel xz-devel gdbm-devel libffi-devel
         clean_tmp
         install_openssl
