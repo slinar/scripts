@@ -50,7 +50,7 @@ download_pcre(){
 install_fancyindex(){
     cd /tmp || exit 1
     if [ ! -f ${fancyindex_ver}.tar.gz ];then
-        if ! wget --tries 3 --retry-connrefused -O ${fancyindex_ver}.tar.gz "https://tang.0db.org/${fancyindex_ver}.tar.gz"; then
+        if ! wget --tries 3 --retry-connrefused -O ${fancyindex_ver}.tar.gz "https://pan.0db.org/directlink/dep/${fancyindex_ver}.tar.gz"; then
             rm -f ${fancyindex_ver}.tar.gz
             echo "${fancyindex_ver}.tar.gz download failed!"
             exit 1
@@ -155,7 +155,7 @@ install_nginx(){
     uninstall_old_nginx
     mkdir -p /var/cache/nginx
     make install || exit $?
-    wget --tries 3 --retry-connrefused -O /etc/rc.d/init.d/nginx "https://tang.0db.org/nginx" || exit 1
+    wget --tries 3 --retry-connrefused -O /etc/rc.d/init.d/nginx "https://pan.0db.org/directlink/dep/nginx" || exit 1
     chown root:root /etc/rc.d/init.d/nginx && chmod 755 /etc/rc.d/init.d/nginx
     chkconfig --add nginx
     chkconfig nginx on
