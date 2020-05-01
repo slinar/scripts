@@ -1,7 +1,7 @@
 #!/bin/bash
 # Recently updated: 2020/3/28 16:40
 
-openssl_ver="openssl-1.1.1d"
+openssl_ver="openssl-1.1.1g"
 openssh_ver="openssh-8.2p1"
 
 # Use default sshd_config?(yes:1, no:0)

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-openssl_ver="openssl-1.1.1d"
-pcre_ver="pcre-8.43"
-nginx_ver="nginx-1.16.1"
+openssl_ver="openssl-1.1.1g"
+pcre_ver="pcre-8.44"
+nginx_ver="nginx-1.18.0"
 fancyindex_ver="ngx-fancyindex-0.4.4"
 
 download_zlib(){
@@ -50,7 +50,7 @@ download_pcre(){
 install_fancyindex(){
     cd /tmp || exit 1
     if [ ! -f ${fancyindex_ver}.tar.gz ];then
-        if ! wget --tries 3 --retry-connrefused -O ${fancyindex_ver}.tar.gz "https://pan.0db.org/directlink/dep/${fancyindex_ver}.tar.gz"; then
+        if ! wget --tries 3 --retry-connrefused -O ${fancyindex_ver}.tar.gz "https://pan.0db.org/directlink/1/dep/${fancyindex_ver}.tar.gz"; then
             rm -f ${fancyindex_ver}.tar.gz
             echo "${fancyindex_ver}.tar.gz download failed!"
             exit 1
@@ -66,6 +66,7 @@ install_fancyindex(){
     ./configure --with-compat --add-dynamic-module=/tmp/${fancyindex_ver} || { echo "ERROR: configure ${fancyindex_ver} with ${nginx_ver}";exit 1;}
     make modules || { echo "ERROR: make ${fancyindex_ver} with ${nginx_ver}";exit 1;}
     [ ! -f objs/ngx_http_fancyindex_module.so ] && echo "ERROR: /tmp/${nginx_ver}/objs/ngx_http_fancyindex_module.so not found!" && exit 1
+    mkdir -p /usr/lib64/nginx/modules || exit 1
     cp -f objs/ngx_http_fancyindex_module.so /usr/lib64/nginx/modules/ngx_http_fancyindex_module.so || exit 1
     local count
     count=$(grep load_module /etc/nginx/nginx.conf|grep '/usr/lib64/nginx/modules/ngx_http_fancyindex_module.so'|grep -cv '#')
@@ -155,7 +156,7 @@ install_nginx(){
     uninstall_old_nginx
     mkdir -p /var/cache/nginx
     make install || exit $?
-    wget --tries 3 --retry-connrefused -O /etc/rc.d/init.d/nginx "https://pan.0db.org/directlink/dep/nginx" || exit 1
+    wget --tries 3 --retry-connrefused -O /etc/rc.d/init.d/nginx "https://pan.0db.org/directlink/1/dep/nginx" || exit 1
     chown root:root /etc/rc.d/init.d/nginx && chmod 755 /etc/rc.d/init.d/nginx
     chkconfig --add nginx
     chkconfig nginx on
@@ -179,6 +180,7 @@ echo "nginx            : ${nginx_ver}"
 echo "pcre             : ${pcre_ver}"
 echo "fancyindex       : ${fancyindex_ver}"
 echo
+echo 'You can execute "nginx.sh index" and install the fancyindex module separately'
 read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
