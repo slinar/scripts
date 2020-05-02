@@ -10,7 +10,7 @@ new_config="1"
 # Enables PAM support?(yes:1, no:0)
 pam="0"
 
-sshd_port=$( netstat -lnp|grep sshd|grep -vE 'grep|unix|:::'|awk '{print $4}'|awk -F':' '{print $2}' )
+sshd_port=$( netstat -lnp|grep sshd|grep -vE 'unix|:::'|awk '{print $4}'|awk -F':' '{print $2}' )
 [ -z "${sshd_port}" ] && sshd_port="22"
 
 install_zlib(){
@@ -75,10 +75,10 @@ install_openssl(){
 
 modify_iptables(){
     local num
-    num=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dpt:'${sshd_port}''|grep -vc grep )
-    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dports.* '${sshd_port}','|grep -vc grep )
-    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dports.*,'${sshd_port}','|grep -vc grep )
-    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -E 'ACCEPT.*tcp.*dports.*,'${sshd_port}' '|grep -vc grep )
+    num=$( iptables -nvL|grep -cE 'ACCEPT.*tcp.*dpt:'${sshd_port}'' )
+    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -cE 'ACCEPT.*tcp.*dports.* '${sshd_port}',' )
+    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -cE 'ACCEPT.*tcp.*dports.*,'${sshd_port}',' )
+    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -cE 'ACCEPT.*tcp.*dports.*,'${sshd_port}' ' )
     if [ "${num}" -eq 0 ];then
         iptables -P INPUT DROP
         iptables -P FORWARD DROP
