@@ -8,11 +8,13 @@
 ****
 |文件|描述|
 |---|---
-|python3.7.sh|一键安装openssl-1.1.1d和python-3.7
-|openssh.sh|一键安装openssl-1.1.1d和openssh-8.1p1
+|python3.7.sh|一键安装openssl-1.1.1g和python-3.7
+|openssh.sh|一键安装openssl-1.1.1g和openssh-8.2p1
 |nginx.sh|一键安装nginx(可选openssl版本)
+|curl.sh|一键更新curl(支持http2和tls1.3)
 |nginx|centos 6上的nginx服务脚本
 |nginx.conf|ngx-fancyindex示例配置
+
 
 nginx.sh 中使用了自己的文件服务器,不得不吐槽不挂代理的情况下连接github很不稳定
 
