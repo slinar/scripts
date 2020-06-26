@@ -1,76 +1,65 @@
 #!/bin/bash
-# Recently updated: 2020/3/28 16:40
+# Recently updated: 2020/6/24 19:18
 
-openssl_ver="openssl-1.1.1g"
-openssh_ver="openssh-8.2p1"
+openssh_ver="openssh-8.3p1"
+libressl_ver="libressl-3.1.3"
 
-# Use default sshd_config?(yes:1, no:0)
-new_config="1"
+# Use default sshd_config
+new_config=yes
 
-# Enables PAM support?(yes:1, no:0)
-pam="0"
+# Enables PAM support
+pam=no
+
+# Do not use openssl(libressl)
+without_openssl=no
 
 sshd_port=$( netstat -lnp|grep sshd|grep -vE 'unix|:::'|awk '{print $4}'|awk -F':' '{print $2}' )
 [ -z "${sshd_port}" ] && sshd_port="22"
+export CFLAGS=-fPIC
+if [[ ${new_config} != yes && ${new_config} != no ]]; then
+    echo "new_config=yes or new_config=no"
+    exit 1
+fi
+if [[ ${without_openssl} != yes && ${without_openssl} != no ]]; then
+    echo "without_openssl=yes or without_openssl=no"
+    exit 1
+fi
 
-install_zlib(){
-    if [ -f /usr/local/zlib-1.2.11/lib/libz.a ];then
-        echo "zlib-1.2.11 already exists!"
-        return
-    fi
+build_zlib(){
     cd /tmp || exit 1
     if [ ! -f zlib-1.2.11.tar.gz ];then
         if ! wget --tries 3 --retry-connrefused -O zlib-1.2.11.tar.gz "https://zlib.net/zlib-1.2.11.tar.gz"; then
-            rm -rf zlib-1.2.11.tar.gz
+            rm -f zlib-1.2.11.tar.gz
             echo "zlib-1.2.11.tar.gz download failed!"
             exit 1
         fi
     fi
-    tar xzf zlib-1.2.11.tar.gz || exit 1
+    tar xzf zlib-1.2.11.tar.gz || { rm -f zlib-1.2.11.tar.gz; exit 1;}
     cd zlib-1.2.11 || exit 1
     chmod 744 configure || exit 1
-    ./configure --prefix=/usr/local/zlib-1.2.11 \
+    ./configure --prefix=/tmp/${openssh_ver}/zlib --static \
     || { echo "Failed to configure zlib!";exit 1;}
-    make
-    make install
-    local count
-    count=$( grep -xc "/usr/local/zlib-1.2.11/lib" /etc/ld.so.conf )
-    [ "${count}" -eq 0 ] && sed -i '$a\/usr/local/zlib-1.2.11/lib' /etc/ld.so.conf
-    ldconfig
+    make && make install
 }
 
-install_openssl(){
-    if [ -f /usr/local/${openssl_ver}/bin/openssl ];then
-        echo "${openssl_ver} already exists!"
-        return
-    fi
-    if [ ! -f /etc/pki/tls/certs/ca-bundle.crt ];then
-        echo "/etc/pki/tls/certs/ca-bundle.crt is not found!"
-        exit 1
-    fi
+build_libressl(){
+    [ ${without_openssl} == yes ] && return
     cd /tmp || exit 1
-    if [ ! -f ${openssl_ver}.tar.gz ];then
-        if ! wget --tries 3 --retry-connrefused -O ${openssl_ver}.tar.gz "https://www.openssl.org/source/${openssl_ver}.tar.gz";then
-            rm -rf ${openssl_ver}.tar.gz
-            echo "${openssl_ver}.tar.gz download failed!"
-            exit 1
+    if [ ! -f ${libressl_ver}.tar.gz ]; then
+        if ! wget --tries 3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"; then
+            rm -f ${libressl_ver}.tar.gz
+            wget --tries 3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://pan.0db.org/directlink/1/dep/${libressl_ver}.tar.gz" \
+            || { rm -f ${libressl_ver}.tar.gz; echo "${libressl_ver}.tar.gz download failed!"; exit 1;}
         fi
     fi
-    tar xzf ${openssl_ver}.tar.gz || exit 1
-    cd ${openssl_ver} || exit 1
-    chmod 744 config || exit 1
-    ./config --prefix=/usr/local/${openssl_ver} --openssldir=/usr/local/${openssl_ver}/ssl -fPIC \
-    || { echo "Failed to config openssl!";exit 1;}
-    make
-    make install
-    local count
-    sed -i '/openssl-1/d' /etc/ld.so.conf
-    count=$( grep -xc "/usr/local/${openssl_ver}/lib" /etc/ld.so.conf )
-    [ "${count}" -eq 0 ] && sed -i '$a\/usr/local/'${openssl_ver}'/lib' /etc/ld.so.conf
-    ldconfig
-    rm -rf /usr/local/${openssl_ver}/ssl/certs
-    ln -s /etc/pki/tls/certs /usr/local/${openssl_ver}/ssl/certs
-    ln -s /etc/pki/tls/certs/ca-bundle.crt /usr/local/${openssl_ver}/ssl/cert.pem
+    tar xzf ${libressl_ver}.tar.gz || { rm -f ${libressl_ver}.tar.gz; exit 1;}
+    cd ${libressl_ver} || exit 1
+    chmod 744 configure || exit 1
+    ./configure --prefix=/tmp/${openssh_ver}/libressl --includedir=/usr/include --enable-shared=no --disable-tests \
+    || { echo "Failed to config libressl!";exit 1;}
+    make && make install && return
+    echo "make or make install libressl failed!"
+    exit 1
 }
 
 modify_iptables(){
@@ -106,7 +95,7 @@ privsep(){
 }
 
 modify_sshd_pam(){
-    [ ${pam} == "0" ] && rm -f /etc/pam.d/sshd && return
+    [ ${pam} == no ] && rm -f /etc/pam.d/sshd && return
     cat > /etc/pam.d/sshd<<EOF
 #%PAM-1.0
 auth	   required	pam_sepermit.so
@@ -131,7 +120,7 @@ modify_sshdconfig(){
     sed -i 's/#Port 22/Port '${sshd_port}'/' /etc/ssh/sshd_config
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
     sed -i 's/#UseDNS no/UseDNS no/' /etc/ssh/sshd_config
-    [ ${pam} == "1" ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config
+    [ ${pam} == yes ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config
     sed -i 's/#TCPKeepAlive yes/TCPKeepAlive yes/' /etc/ssh/sshd_config
     sed -i 's/#ClientAliveInterval 0/ClientAliveInterval 60/' /etc/ssh/sshd_config
 }
@@ -142,27 +131,23 @@ modify_selinux(){
 }
 
 modify_permissions(){
+    rm -f /etc/ssh/ssh_host_*
+    /usr/bin/ssh-keygen -A
+    [ ! -f /etc/ssh/ssh_host_rsa_key.pub ] && touch /etc/ssh/ssh_host_rsa_key.pub
+    [ ! -f /etc/ssh/ssh_host_dsa_key.pub ] && touch /etc/ssh/ssh_host_dsa_key.pub
+    [ ! -f /etc/ssh/ssh_host_ecdsa_key.pub ] && touch /etc/ssh/ssh_host_ecdsa_key.pub
     chown root:root /etc/rc.d/init.d/sshd
-    chown root:root /etc/ssh/ssh_host_rsa_key
-    chown root:root /etc/ssh/ssh_host_ecdsa_key
-    chown root:root /etc/ssh/ssh_host_ed25519_key
-    chown root:root /etc/ssh/ssh_host_dsa_key
     chmod 755 /etc/rc.d/init.d/sshd
-    chmod 600 /etc/ssh/ssh_host_rsa_key
-    chmod 600 /etc/ssh/ssh_host_ecdsa_key
-    chmod 600 /etc/ssh/ssh_host_ed25519_key
-    chmod 600 /etc/ssh/ssh_host_dsa_key
 }
 
 uninstall_old_openssh(){
-    cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak >/dev/null 2>&1
+    cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak > /dev/null 2>&1
     mv -f /etc/ssh/ssh_config /etc/ssh/ssh_config_bak > /dev/null 2>&1
     mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak > /dev/null 2>&1
     #git --version || yum -y remove openssh-clients
     #yum -y remove openssh-server
-    chkconfig --del sshd
+    chkconfig --del sshd > /dev/null 2>&1
     rm -f /etc/ssh/moduli
-    rm -f /etc/ssh/ssh_host_ke*
     rm -f /etc/rc.d/init.d/sshd
 }
 
@@ -175,41 +160,45 @@ download_openssh(){
         fi
     fi
     tar xzf ${openssh_ver}.tar.gz || { echo "tar xzf ${openssh_ver}.tar.gz failed!";exit 1;}
-    cd ${openssh_ver} || { echo "cd ${openssh_ver} failed!";exit 1;}
-    chmod 744 configure || { echo "chmod 744 configure failed!";exit 1;}
+    cd ${openssh_ver} || exit 1
+    chmod 744 configure || exit 1
 }
 
 install_openssh(){
     cd /tmp || exit 1
     download_openssh
     privsep
-    if [ ${pam} == "0" ];then
-        ./configure --prefix=/usr --sysconfdir=/etc/ssh --with-ssl-dir=/usr/local/${openssl_ver} --with-zlib=/usr/local/zlib-1.2.11 --with-md5-passwords --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd \
-        || { echo "Failed to configure openssh!";exit 1;}
-    elif [ ${pam} == "1" ];then
-        ./configure --prefix=/usr --sysconfdir=/etc/ssh --with-ssl-dir=/usr/local/${openssl_ver} --with-zlib=/usr/local/zlib-1.2.11 --with-md5-passwords --with-pam --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd \
-        || { echo "Failed to configure openssh!";exit 1;}
-    else
-        echo 'pam value error! 0 or 1'
-        exit 1
-    fi
+    local pam_option
+    local libressl_option
+    [ ${pam} == yes ] && pam_option='--with-pam'
+    [ ${without_openssl} == yes ] && libressl_option='--without-openssl'
+    [ ${without_openssl} == no ] && libressl_option='--with-ssl-dir=libressl'
+    unset CFLAGS
+    ./configure --prefix=/usr --sysconfdir=/etc/ssh ${libressl_option} ${pam_option} --with-zlib=zlib --with-cflags=-fPIC --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd \
+    || { echo "Failed to configure openssh!";exit 1;}
     make || { echo "Failed to make openssh!";exit 1;}
     trap "" 2
     uninstall_old_openssh
     make install
     cp -f /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
-    if [ ${new_config} == "0" ]; then
+    if [ ${new_config} == no ]; then
         echo "mod config_bak"
-        [ ${pam} == "0" ] && sed -i 's/UsePAM yes/#UsePAM no/' /etc/ssh/sshd_config_bak
-        [ ${pam} == "1" ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config_bak
-    fi
-    if test ${new_config} == "0" && /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
-        echo "old config"
-        rm -f /etc/ssh/sshd_config
-        rm -f /etc/ssh/ssh_config
-        mv -f /etc/ssh/sshd_config_bak /etc/ssh/sshd_config
-        mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
-    else
+        [ ${pam} == no ] && sed -i 's/UsePAM yes/#UsePAM no/' /etc/ssh/sshd_config_bak >/dev/null 2>&1
+        [ ${pam} == yes ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config_bak >/dev/null 2>&1
+        [ ${pam} == yes ] && sed -i 's/UsePAM no/UsePAM yes/' /etc/ssh/sshd_config_bak >/dev/null 2>&1
+        if /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
+            echo "old config"
+            rm -f /etc/ssh/sshd_config
+            rm -f /etc/ssh/ssh_config
+            mv -f /etc/ssh/sshd_config_bak /etc/ssh/sshd_config
+            mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
+        else
+            echo "new config"
+            rm -f /etc/ssh/sshd_config_bak
+            rm -f /etc/ssh/ssh_config_bak
+            modify_sshdconfig
+        fi
+    elif [ ${new_config} == yes ]; then
         echo "new config"
         rm -f /etc/ssh/sshd_config_bak
         rm -f /etc/ssh/ssh_config_bak
@@ -230,31 +219,33 @@ install_openssh(){
     else
         service sshd restart || { kill -9 "${sshd_pid}";rm -f /var/run/sshd.pid;rm -f /var/lock/subsys/sshd;service sshd start;}
     fi
-    service sshd status && echo "Successfully installed ${openssh_ver}!" && ssh -V && exit 0
+    service sshd status && ssh -V && echo "completed!" && exit 0
 }
 
 clean_tmp(){
     rm -rf /tmp/zlib-1.2.11
-    rm -rf /tmp/${openssl_ver}
+    rm -rf /tmp/${libressl_ver}
     rm -rf /tmp/${openssh_ver}
 }
 
-echo
-echo "openssl    : ${openssl_ver}"
-echo "openssh    : ${openssh_ver}"
-echo "sshd_port  : ${sshd_port}"
-echo "pam        : ${pam}"
-echo "new_config : ${new_config}"
+echo "-------------------------------------------"
+echo "libressl        : ${libressl_ver}"
+echo "openssh         : ${openssh_ver}"
+echo "sshd_port       : ${sshd_port}"
+echo "pam             : ${pam}"
+echo "new_config      : ${new_config}"
+echo "without_openssl : ${without_openssl}"
 echo "Backup     : /etc/pam.d/sshd /etc/pam.d/sshd_bak"
-echo
+[ ${without_openssl} == yes ] && echo "[Warning] Your ssh client(SecureCRT >= 8.5.2) must support the following key exchange algorithms:" && printf "\tcurve25519-sha256\n\tcurve25519-sha256@libssh.org\n"
+echo "-------------------------------------------"
 read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
         echo
         yum -y install gcc wget perl make pam-devel
         clean_tmp
-        install_openssl
-        install_zlib
+        build_libressl
+        build_zlib
         install_openssh
         ;;
     *)
