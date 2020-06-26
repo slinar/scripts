@@ -9,7 +9,7 @@
 |文件|描述|
 |---|---
 |python3.7.sh|一键安装openssl-1.1.1g和python-3.7
-|openssh.sh|一键安装openssl-1.1.1g和openssh-8.2p1
+|openssh.sh|一键升级openssh-8.3p1(可选libressl)
 |nginx.sh|一键安装nginx(可选openssl版本)
 |curl.sh|一键更新curl(支持http2和tls1.3)
 |nginx|centos 6上的nginx服务脚本
