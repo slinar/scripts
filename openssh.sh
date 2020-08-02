@@ -30,7 +30,7 @@ build_zlib(){
     if [ ! -f zlib-1.2.11.tar.gz ];then
         if ! wget --continue --tries 3 --retry-connrefused -O zlib-1.2.11.tar.gz "https://zlib.net/zlib-1.2.11.tar.gz"; then
             rm -f zlib-1.2.11.tar.gz
-            echo "zlib-1.2.11.tar.gz download failed!"
+            echo "zlib-1.2.11.tar.gz download failed"
             exit 1
         fi
     fi
@@ -38,7 +38,7 @@ build_zlib(){
     cd zlib-1.2.11 || exit 1
     chmod 744 configure || exit 1
     ./configure --prefix=/tmp/${openssh_ver}/zlib --static \
-    || { echo "Failed to configure zlib!";exit 1;}
+    || { echo "Failed to configure zlib";exit 1;}
     make && make install
 }
 
@@ -49,16 +49,16 @@ build_libressl(){
         if ! wget --continue --tries 3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"; then
             rm -f ${libressl_ver}.tar.gz
             wget --continue --tries 3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://pan.0db.org/directlink/1/dep/${libressl_ver}.tar.gz" \
-            || { rm -f ${libressl_ver}.tar.gz; echo "${libressl_ver}.tar.gz download failed!"; exit 1;}
+            || { rm -f ${libressl_ver}.tar.gz; echo "${libressl_ver}.tar.gz download failed"; exit 1;}
         fi
     fi
     tar xzf ${libressl_ver}.tar.gz || { rm -f ${libressl_ver}.tar.gz; exit 1;}
     cd ${libressl_ver} || exit 1
     chmod 744 configure || exit 1
     ./configure --prefix=/tmp/${openssh_ver}/libressl --includedir=/usr/include --enable-shared=no --disable-tests \
-    || { echo "Failed to config libressl!";exit 1;}
+    || { echo "Failed to config libressl";exit 1;}
     make && make install && return
-    echo "make or make install libressl failed!"
+    echo "make or make install libressl failed"
     exit 1
 }
 
@@ -87,7 +87,7 @@ privsep(){
     gid=$( grep 'sshd:x:' /etc/passwd|awk -F : '{print $4}' )
     if [ -n "${gid}" ];then
         gname=$( grep "${gid}" /etc/group|awk -F : '{print $1}' )
-        [ "${gname}" != "sshd" ] && echo "user:sshd does not belong to group:sshd!" && exit 1
+        [ "${gname}" != "sshd" ] && echo "user:sshd does not belong to group:sshd" && exit 1
     else
         groupadd sshd
         useradd -g sshd -c 'sshd privsep' -d /var/empty/sshd -s /sbin/nologin sshd
@@ -155,11 +155,11 @@ download_openssh(){
     if [ ! -f ${openssh_ver}.tar.gz ];then
         if ! wget --continue --tries 3 --retry-connrefused -O ${openssh_ver}.tar.gz "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz";then
             rm -f ${openssh_ver}.tar.gz
-            echo "${openssh_ver}.tar.gz download failed!"
+            echo "${openssh_ver}.tar.gz download failed"
             exit 1
         fi
     fi
-    tar xzf ${openssh_ver}.tar.gz || { echo "tar xzf ${openssh_ver}.tar.gz failed!";rm -f ${openssh_ver}.tar.gz;exit 1;}
+    tar xzf ${openssh_ver}.tar.gz || { echo "tar xzf ${openssh_ver}.tar.gz failed";rm -f ${openssh_ver}.tar.gz;exit 1;}
     cd ${openssh_ver} || exit 1
     chmod 744 configure || exit 1
 }
@@ -175,8 +175,8 @@ install_openssh(){
     [ ${without_openssl} == no ] && libressl_option='--with-ssl-dir=libressl'
     unset CFLAGS
     ./configure --prefix=/usr --sysconfdir=/etc/ssh ${libressl_option} ${pam_option} --with-zlib=zlib --with-cflags=-fPIC --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd \
-    || { echo "Failed to configure openssh!";exit 1;}
-    make || { echo "Failed to make openssh!";exit 1;}
+    || { echo "Failed to configure openssh";exit 1;}
+    make || { echo "Failed to make openssh";exit 1;}
     trap "" 2
     uninstall_old_openssh
     make install
@@ -219,7 +219,7 @@ install_openssh(){
     else
         service sshd restart || { kill -9 "$( pgrep -ofP "$(cat /proc/sys/kernel/core_uses_pid)" sshd )" >/dev/null 2>&1;rm -f /var/run/sshd.pid;rm -f /var/lock/subsys/sshd;service sshd start;}
     fi
-    service sshd status && ssh -V && echo "completed!" && exit 0
+    service sshd status && ssh -V && echo "completed" && exit 0
 }
 
 clean_tmp(){
