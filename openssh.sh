@@ -28,7 +28,7 @@ fi
 build_zlib(){
     cd /tmp || exit 1
     if [ ! -f zlib-1.2.11.tar.gz ];then
-        if ! wget --tries 3 --retry-connrefused -O zlib-1.2.11.tar.gz "https://zlib.net/zlib-1.2.11.tar.gz"; then
+        if ! wget --continue --tries 3 --retry-connrefused -O zlib-1.2.11.tar.gz "https://zlib.net/zlib-1.2.11.tar.gz"; then
             rm -f zlib-1.2.11.tar.gz
             echo "zlib-1.2.11.tar.gz download failed!"
             exit 1
@@ -46,9 +46,9 @@ build_libressl(){
     [ ${without_openssl} == yes ] && return
     cd /tmp || exit 1
     if [ ! -f ${libressl_ver}.tar.gz ]; then
-        if ! wget --tries 3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"; then
+        if ! wget --continue --tries 3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"; then
             rm -f ${libressl_ver}.tar.gz
-            wget --tries 3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://pan.0db.org/directlink/1/dep/${libressl_ver}.tar.gz" \
+            wget --continue --tries 3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://pan.0db.org/directlink/1/dep/${libressl_ver}.tar.gz" \
             || { rm -f ${libressl_ver}.tar.gz; echo "${libressl_ver}.tar.gz download failed!"; exit 1;}
         fi
     fi
@@ -153,13 +153,13 @@ uninstall_old_openssh(){
 
 download_openssh(){
     if [ ! -f ${openssh_ver}.tar.gz ];then
-        if ! wget --tries 3 --retry-connrefused -O ${openssh_ver}.tar.gz "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz";then
-            rm -rf ${openssh_ver}.tar.gz
+        if ! wget --continue --tries 3 --retry-connrefused -O ${openssh_ver}.tar.gz "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz";then
+            rm -f ${openssh_ver}.tar.gz
             echo "${openssh_ver}.tar.gz download failed!"
             exit 1
         fi
     fi
-    tar xzf ${openssh_ver}.tar.gz || { echo "tar xzf ${openssh_ver}.tar.gz failed!";exit 1;}
+    tar xzf ${openssh_ver}.tar.gz || { echo "tar xzf ${openssh_ver}.tar.gz failed!";rm -f ${openssh_ver}.tar.gz;exit 1;}
     cd ${openssh_ver} || exit 1
     chmod 744 configure || exit 1
 }
@@ -217,7 +217,7 @@ install_openssh(){
         rm -f /var/lock/subsys/sshd
         service sshd start
     else
-        service sshd restart || { kill -9 "${sshd_pid}";rm -f /var/run/sshd.pid;rm -f /var/lock/subsys/sshd;service sshd start;}
+        service sshd restart || { kill -9 "$( pgrep -ofP "$(cat /proc/sys/kernel/core_uses_pid)" sshd )" >/dev/null 2>&1;rm -f /var/run/sshd.pid;rm -f /var/lock/subsys/sshd;service sshd start;}
     fi
     service sshd status && ssh -V && echo "completed!" && exit 0
 }

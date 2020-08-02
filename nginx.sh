@@ -8,13 +8,13 @@ fancyindex_ver="ngx-fancyindex-0.4.4"
 download_zlib(){
     cd /tmp || exit 1
     if [ ! -f zlib-1.2.11.tar.gz ];then
-        if ! wget --tries 3 --retry-connrefused -O zlib-1.2.11.tar.gz "https://zlib.net/zlib-1.2.11.tar.gz"; then
+        if ! wget --continue --tries 3 --retry-connrefused -O zlib-1.2.11.tar.gz "https://zlib.net/zlib-1.2.11.tar.gz"; then
             rm -f zlib-1.2.11.tar.gz
             echo "zlib-1.2.11.tar.gz download failed!"
             exit 1
         fi
     fi
-    tar xzf zlib-1.2.11.tar.gz || exit 1
+    tar xzf zlib-1.2.11.tar.gz || { rm -f zlib-1.2.11.tar.gz; exit 1;}
     cd zlib-1.2.11 || exit 1
     chmod 744 configure || exit 1
 }
@@ -22,13 +22,13 @@ download_zlib(){
 download_openssl(){
     cd /tmp || exit 1
     if [ ! -f ${openssl_ver}.tar.gz ];then
-        if ! wget --tries 3 --retry-connrefused -O ${openssl_ver}.tar.gz "https://www.openssl.org/source/${openssl_ver}.tar.gz"; then
+        if ! wget --continue --tries 3 --retry-connrefused -O ${openssl_ver}.tar.gz "https://www.openssl.org/source/${openssl_ver}.tar.gz"; then
             rm -f ${openssl_ver}.tar.gz
             echo "${openssl_ver}.tar.gz download failed!"
             exit 1
         fi
     fi
-    tar xzf ${openssl_ver}.tar.gz || exit 1
+    tar xzf ${openssl_ver}.tar.gz || { rm -f ${openssl_ver}.tar.gz; exit 1;}
     cd ${openssl_ver} || exit 1
     chmod 744 config || exit 1
 }
@@ -36,13 +36,13 @@ download_openssl(){
 download_pcre(){
     cd /tmp || exit 1
     if [ ! -f ${pcre_ver}.tar.gz ];then
-        if ! wget --tries 3 --retry-connrefused -O ${pcre_ver}.tar.gz "https://ftp.pcre.org/pub/pcre/${pcre_ver}.tar.gz"; then
+        if ! wget --continue --tries 3 --retry-connrefused -O ${pcre_ver}.tar.gz "https://ftp.pcre.org/pub/pcre/${pcre_ver}.tar.gz"; then
             rm -f ${pcre_ver}.tar.gz
             echo "${pcre_ver}.tar.gz download failed!"
             exit 1
         fi
     fi
-    tar xzf ${pcre_ver}.tar.gz || exit 1
+    tar xzf ${pcre_ver}.tar.gz || { rm -f ${pcre_ver}.tar.gz; exit 1;}
     cd ${pcre_ver} || exit 1
     chmod 744 configure || exit 1
 }
@@ -50,28 +50,29 @@ download_pcre(){
 install_fancyindex(){
     cd /tmp || exit 1
     if [ ! -f ${fancyindex_ver}.tar.gz ];then
-        if ! wget --tries 3 --retry-connrefused -O ${fancyindex_ver}.tar.gz "https://pan.0db.org/directlink/1/dep/${fancyindex_ver}.tar.gz"; then
+        if ! wget --continue --tries 3 --retry-connrefused -O ${fancyindex_ver}.tar.gz "https://pan.0db.org/directlink/1/dep/${fancyindex_ver}.tar.gz"; then
             rm -f ${fancyindex_ver}.tar.gz
             echo "${fancyindex_ver}.tar.gz download failed!"
             exit 1
         fi
     fi
-    tar xzf ${fancyindex_ver}.tar.gz || exit 1
+    tar xzf ${fancyindex_ver}.tar.gz || { rm -f ${fancyindex_ver}.tar.gz; exit 1;}
     cd ${fancyindex_ver} || exit 1
     cd /tmp/${nginx_ver} || exit 1
-    echo "src version: $(grep NGINX_VERSION src/core/nginx.h|grep -vE 'grep|/'|awk '{print $3}')"
-    echo -n "current " && nginx -v
-    read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
-    [ "${input}" != "y" ] && echo && exit 1
+    local src_ver
+    local curr_ver
+    src_ver=$(strings /usr/sbin/nginx|grep 'nginx version'|awk -F '/' '{print $2}')
+    curr_ver=$(grep NGINX_VERSION src/core/nginx.h|grep -vE 'grep|/'|awk '{print $3}'|tr -d '"')
+    [ "${src_ver}" != "${curr_ver}" ] && echo "Source nginx_version and current_versions do not match! Failed to install fancyindex!" && exit 1
     ./configure --with-compat --add-dynamic-module=/tmp/${fancyindex_ver} || { echo "ERROR: configure ${fancyindex_ver} with ${nginx_ver}";exit 1;}
     make modules || { echo "ERROR: make ${fancyindex_ver} with ${nginx_ver}";exit 1;}
-    [ ! -f objs/ngx_http_fancyindex_module.so ] && echo "ERROR: /tmp/${nginx_ver}/objs/ngx_http_fancyindex_module.so not found!" && exit 1
+    [ ! -f objs/ngx_http_fancyindex_module.so ] && echo "ERROR: build fancyindex success, but /tmp/${nginx_ver}/objs/ngx_http_fancyindex_module.so not found!" && exit 1
     mkdir -p /usr/lib64/nginx/modules || exit 1
     cp -f objs/ngx_http_fancyindex_module.so /usr/lib64/nginx/modules/ngx_http_fancyindex_module.so || exit 1
     local count
     count=$(grep load_module /etc/nginx/nginx.conf|grep '/usr/lib64/nginx/modules/ngx_http_fancyindex_module.so'|grep -cv '#')
     [ "${count}" -eq 0 ] && sed -i '1iload_module /usr/lib64/nginx/modules/ngx_http_fancyindex_module.so;' /etc/nginx/nginx.conf
-    nginx -t && service nginx reload
+    nginx -t && service nginx restart && echo 'completed'
 }
 
 uninstall_old_nginx(){
@@ -79,16 +80,12 @@ uninstall_old_nginx(){
     yum -y remove nginx
     [ -d /etc/nginx_bak ] && mv /etc/nginx_bak /etc/nginx
     if nginx -v; then
-        if service nginx status; then
-            service nginx stop
-        else
-            nginx -s stop > /dev/null 2>&1
-        
-        fi
+        service nginx stop
+        killall nginx
+        rm -f /var/lock/subsys/nginx
+        rm -f /var/run/nginx.pid
     fi
     chkconfig --del nginx
-    rm -f /var/run/nginx.pid
-    rm -f /var/lock/subsys/nginx
     rm -f /usr/sbin/nginx
     rm -f /etc/rc.d/init.d/nginx
     rm -rf /var/cache/nginx
@@ -139,13 +136,13 @@ configure_nginx(){
 install_nginx(){
     cd /tmp || exit 1
     if [ ! -f ${nginx_ver}.tar.gz ]; then
-        if ! wget --tries 3 --retry-connrefused -O ${nginx_ver}.tar.gz "https://nginx.org/download/${nginx_ver}.tar.gz"; then
+        if ! wget --continue --tries 3 --retry-connrefused -O ${nginx_ver}.tar.gz "https://nginx.org/download/${nginx_ver}.tar.gz"; then
             rm -f ${nginx_ver}.tar.gz
             echo "${nginx_ver}.tar.gz download failed!"
             exit 1
         fi
     fi
-    tar xzf ${nginx_ver}.tar.gz || exit 1
+    tar xzf ${nginx_ver}.tar.gz || { rm -f ${nginx_ver}.tar.gz; exit 1;}
     cd ${nginx_ver} || exit 1
     chmod 744 configure || exit 1
     [ -f /var/cache/nginx ] && rm -f /var/cache/nginx
@@ -156,12 +153,12 @@ install_nginx(){
     uninstall_old_nginx
     mkdir -p /var/cache/nginx
     make install || exit $?
-    wget --tries 3 --retry-connrefused -O /etc/rc.d/init.d/nginx "https://pan.0db.org/directlink/1/dep/nginx" || exit 1
+    wget --continue --tries 3 --retry-connrefused -O /etc/rc.d/init.d/nginx "https://pan.0db.org/directlink/1/dep/nginx" || exit 1
     chown root:root /etc/rc.d/init.d/nginx && chmod 755 /etc/rc.d/init.d/nginx
     chkconfig --add nginx
     chkconfig nginx on
     rm -f /etc/nginx/*.default
-    service nginx start && echo "completed!"
+    service nginx start && echo 'completed'
 }
 
 clean_tmp(){
@@ -169,7 +166,7 @@ clean_tmp(){
     rm -rf "/tmp/zlib-1.2.11"
     rm -rf "/tmp/${pcre_ver}"
     rm -rf "/tmp/${fancyindex_ver}"
-    rm -f "/tmp/pax_global_header"
+    rm -rf "/tmp/${nginx_ver}"
 }
 
 [ "$1" == "index" ] && { install_fancyindex; exit $?;}
@@ -185,7 +182,7 @@ read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
         echo
-        yum -y install gcc gcc-c++ perl make pcre-devel openssl-devel zlib-devel
+        yum -y install gcc gcc-c++ perl make wget pcre-devel openssl-devel zlib-devel
         clean_tmp
         download_openssl
         download_zlib
