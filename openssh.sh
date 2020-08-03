@@ -144,8 +144,9 @@ uninstall_old_openssh(){
     cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak > /dev/null 2>&1
     mv -f /etc/ssh/ssh_config /etc/ssh/ssh_config_bak > /dev/null 2>&1
     mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak > /dev/null 2>&1
-    #git --version || yum -y remove openssh-clients
-    #yum -y remove openssh-server
+    git --version || yum -y remove openssh-clients
+    yum -y remove openssh-server
+    git --version || yum -y remove openssh
     chkconfig --del sshd > /dev/null 2>&1
     rm -f /etc/ssh/moduli
     rm -f /etc/rc.d/init.d/sshd
@@ -211,15 +212,12 @@ install_openssh(){
     chkconfig --add sshd
     chkconfig sshd on
     local sshd_pid
-    sshd_pid=$( pgrep -ofP "$(cat /proc/sys/kernel/core_uses_pid)" sshd )
-    if [ -z "${sshd_pid}" ];then
-        rm -f /var/run/sshd.pid
-        rm -f /var/lock/subsys/sshd
-        service sshd start
-    else
-        service sshd restart || { kill -9 "$( pgrep -ofP "$(cat /proc/sys/kernel/core_uses_pid)" sshd )" >/dev/null 2>&1;rm -f /var/run/sshd.pid;rm -f /var/lock/subsys/sshd;service sshd start;}
-    fi
-    service sshd status && ssh -V && echo "completed" && exit 0
+    sshd_pid=$(pgrep -ofP "$(cat /proc/sys/kernel/core_uses_pid)" /usr/sbin/sshd)
+    [ -n "${sshd_pid}" ] && kill -TERM "${sshd_pid}"
+    rm -f /var/run/sshd.pid
+    rm -f /var/lock/subsys/sshd
+    service sshd start
+    service sshd status && ssh -V && echo "Completed" && exit 0
 }
 
 clean_tmp(){
