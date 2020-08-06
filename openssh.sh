@@ -144,9 +144,9 @@ uninstall_old_openssh(){
     cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak > /dev/null 2>&1
     mv -f /etc/ssh/ssh_config /etc/ssh/ssh_config_bak > /dev/null 2>&1
     mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak > /dev/null 2>&1
-    git --version || yum -y remove openssh-clients
+    rpm -e --test openssh-clients && yum -y remove openssh-clients
     yum -y remove openssh-server
-    git --version || yum -y remove openssh
+    rpm -e --test openssh && yum -y remove openssh
     chkconfig --del sshd > /dev/null 2>&1
     rm -f /etc/ssh/moduli
     rm -f /etc/rc.d/init.d/sshd
