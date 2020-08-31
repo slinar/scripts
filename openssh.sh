@@ -1,8 +1,7 @@
 #!/bin/bash
-# Recently updated: 2020/6/24 19:18
 
 openssh_ver="openssh-8.3p1"
-libressl_ver="libressl-3.1.3"
+libressl_ver="libressl-3.1.4"
 
 # Use default sshd_config
 new_config=yes
@@ -28,10 +27,10 @@ fi
 build_zlib(){
     cd /tmp || exit 1
     if [ ! -f zlib-1.2.11.tar.gz ];then
-        if ! wget --continue --tries 3 --retry-connrefused -O zlib-1.2.11.tar.gz "https://zlib.net/zlib-1.2.11.tar.gz"; then
+        if ! wget --continue --timeout=6 --tries=3 --retry-connrefused -O zlib-1.2.11.tar.gz "https://zlib.net/zlib-1.2.11.tar.gz"; then
             rm -f zlib-1.2.11.tar.gz
-            echo "zlib-1.2.11.tar.gz download failed"
-            exit 1
+            wget --continue --timeout=6 --tries=3 --retry-connrefused -O zlib-1.2.11.tar.gz "https://pan.0db.org/directlink/1/dep/zlib-1.2.11.tar.gz" \
+            || { rm -f zlib-1.2.11.tar.gz; echo "zlib-1.2.11.tar.gz download failed"; exit 1;}
         fi
     fi
     tar xzf zlib-1.2.11.tar.gz || { rm -f zlib-1.2.11.tar.gz; exit 1;}
@@ -46,9 +45,9 @@ build_libressl(){
     [ ${without_openssl} == yes ] && return
     cd /tmp || exit 1
     if [ ! -f ${libressl_ver}.tar.gz ]; then
-        if ! wget --continue --tries 3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"; then
+        if ! wget --continue --timeout=6 --tries=3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"; then
             rm -f ${libressl_ver}.tar.gz
-            wget --continue --tries 3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://pan.0db.org/directlink/1/dep/${libressl_ver}.tar.gz" \
+            wget --continue --timeout=6 --tries=3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://pan.0db.org/directlink/1/dep/${libressl_ver}.tar.gz" \
             || { rm -f ${libressl_ver}.tar.gz; echo "${libressl_ver}.tar.gz download failed"; exit 1;}
         fi
     fi
@@ -154,7 +153,7 @@ uninstall_old_openssh(){
 
 download_openssh(){
     if [ ! -f ${openssh_ver}.tar.gz ];then
-        if ! wget --continue --tries 3 --retry-connrefused -O ${openssh_ver}.tar.gz "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz";then
+        if ! wget --continue --timeout=6 --tries=3 --retry-connrefused -O ${openssh_ver}.tar.gz "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz";then
             rm -f ${openssh_ver}.tar.gz
             echo "${openssh_ver}.tar.gz download failed"
             exit 1
