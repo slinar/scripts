@@ -12,9 +12,6 @@ pam=no
 # Do not use openssl(libressl)
 without_openssl=no
 
-sshd_port=$( netstat -lnp|grep sshd|grep -vE 'unix|:::'|awk '{print $4}'|awk -F':' '{print $2}' )
-[ -z "${sshd_port}" ] && sshd_port="22"
-export CFLAGS=-fPIC
 if [[ ${new_config} != yes && ${new_config} != no ]]; then
     echo "new_config=yes or new_config=no"
     exit 1
@@ -24,54 +21,95 @@ if [[ ${without_openssl} != yes && ${without_openssl} != no ]]; then
     exit 1
 fi
 
-build_zlib(){
-    cd /tmp || exit 1
-    if [ ! -f zlib-1.2.11.tar.gz ];then
-        if ! wget --continue --timeout=6 --tries=3 --retry-connrefused -O zlib-1.2.11.tar.gz "https://zlib.net/zlib-1.2.11.tar.gz"; then
-            rm -f zlib-1.2.11.tar.gz
-            wget --continue --timeout=6 --tries=3 --retry-connrefused -O zlib-1.2.11.tar.gz "https://pan.0db.org/directlink/1/dep/zlib-1.2.11.tar.gz" \
-            || { rm -f zlib-1.2.11.tar.gz; echo "zlib-1.2.11.tar.gz download failed"; exit 1;}
+_sysVer(){
+    local ver
+    ver=$(awk '{print $3}' /etc/redhat-release|awk -F . '{print $1}')
+    if [ "${ver}" -eq 6 ]; then
+        echo -n "${ver}"
+        return
+    else
+        ver=$(awk '{print $4}' /etc/redhat-release|awk -F . '{print $1}')
+        if [[ "${ver}" -eq 7 || "${ver}" -eq 8 ]]; then
+            echo -n "${ver}"
+            return
         fi
     fi
-    tar xzf zlib-1.2.11.tar.gz || { rm -f zlib-1.2.11.tar.gz; exit 1;}
-    cd zlib-1.2.11 || exit 1
-    chmod 744 configure || exit 1
+    echo "This linux distribution is not supported"
+    exit 1
+}
+
+_download(){
+    local url
+    local fileName
+    local tarFileName
+    local tarOptions
+    declare -r urlReg='^(http|https)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
+    declare -r GReg='(\.tar\.gz|\.tgz)$'
+    declare -r BReg='(\.tar\.bz2)$'
+    for url in "$@"; do
+        if [[ ${url} =~ ${urlReg} ]]; then
+            fileName=$(echo "${url}"|awk -F / '{print $NF}')
+            if [[ "${fileName}" =~ ${GReg} ]]; then
+                tarOptions='-zxf'
+                tarFileName=${fileName}
+            elif [[ "${fileName}" =~ ${BReg} ]]; then
+                tarOptions='-jxf'
+                tarFileName=${fileName}
+            else
+                tarOptions='--version'
+                tarFileName=''
+            fi
+            if [ -f "${fileName}" ]; then
+                tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+                rm -f "${fileName}"
+                wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            else
+                wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            fi
+            rm -f "${fileName}"
+        fi
+    done
+    return 1
+}
+
+build_zlib(){
+    cd /tmp || exit 1
+    declare -a url=(
+        "https://zlib.net/zlib-1.2.11.tar.gz"
+        "https://pan.0db.org/directlink/1/dep/zlib-1.2.11.tar.gz"
+    )
+    { _download "${url[@]}" && tar -zxf zlib-1.2.11.tar.gz && cd zlib-1.2.11 && chmod 744 configure;} || exit 1
     ./configure --prefix=/tmp/${openssh_ver}/zlib --static \
     || { echo "Failed to configure zlib";exit 1;}
-    make && make install
+    make && make install && return
+    exit 1
 }
 
 build_libressl(){
     [ ${without_openssl} == yes ] && return
     cd /tmp || exit 1
-    if [ ! -f ${libressl_ver}.tar.gz ]; then
-        if ! wget --continue --timeout=6 --tries=3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"; then
-            rm -f ${libressl_ver}.tar.gz
-            wget --continue --timeout=6 --tries=3 --retry-connrefused -O ${libressl_ver}.tar.gz "https://pan.0db.org/directlink/1/dep/${libressl_ver}.tar.gz" \
-            || { rm -f ${libressl_ver}.tar.gz; echo "${libressl_ver}.tar.gz download failed"; exit 1;}
-        fi
-    fi
-    tar xzf ${libressl_ver}.tar.gz || { rm -f ${libressl_ver}.tar.gz; exit 1;}
-    cd ${libressl_ver} || exit 1
-    chmod 744 configure || exit 1
+    declare -a url=(
+        "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"
+        "https://pan.0db.org/directlink/1/dep/${libressl_ver}.tar.gz"
+    )
+    { _download "${url[@]}" && tar -zxf ${libressl_ver}.tar.gz && cd ${libressl_ver} && chmod 744 configure;} || exit 1
     ./configure --prefix=/tmp/${openssh_ver}/libressl --includedir=/usr/include --enable-shared=no --disable-tests \
     || { echo "Failed to config libressl";exit 1;}
     make && make install && return
-    echo "make or make install libressl failed"
     exit 1
 }
 
 modify_iptables(){
     local num
-    num=$( iptables -nvL|grep -cE 'ACCEPT.*tcp.*dpt:'${sshd_port}'' )
-    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -cE 'ACCEPT.*tcp.*dports.* '${sshd_port}',' )
-    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -cE 'ACCEPT.*tcp.*dports.*,'${sshd_port}',' )
-    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -cE 'ACCEPT.*tcp.*dports.*,'${sshd_port}' ' )
+    num=$( iptables -nvL|grep -cE "ACCEPT.*tcp.*dpt:${sshd_port}" )
+    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -cE "ACCEPT.*tcp.*dports.* ${sshd_port}," )
+    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -cE "ACCEPT.*tcp.*dports.*,${sshd_port}," )
+    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -cE "ACCEPT.*tcp.*dports.*,${sshd_port} " )
     if [ "${num}" -eq 0 ];then
         iptables -P INPUT DROP
         iptables -P FORWARD DROP
         iptables -P OUTPUT ACCEPT
-        iptables -I INPUT -p tcp -m tcp --dport ${sshd_port} -j ACCEPT
+        iptables -I INPUT -p tcp -m tcp --dport "${sshd_port}" -j ACCEPT
         service iptables save
         service iptables restart
     fi
@@ -116,7 +154,7 @@ EOF
 }
 
 modify_sshdconfig(){
-    sed -i 's/#Port 22/Port '${sshd_port}'/' /etc/ssh/sshd_config
+    sed -i 's/#Port 22/Port '"${sshd_port}"'/' /etc/ssh/sshd_config
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
     sed -i 's/#UseDNS no/UseDNS no/' /etc/ssh/sshd_config
     [ ${pam} == yes ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config
@@ -135,8 +173,36 @@ modify_permissions(){
     [ ! -f /etc/ssh/ssh_host_rsa_key.pub ] && touch /etc/ssh/ssh_host_rsa_key.pub
     [ ! -f /etc/ssh/ssh_host_dsa_key.pub ] && touch /etc/ssh/ssh_host_dsa_key.pub
     [ ! -f /etc/ssh/ssh_host_ecdsa_key.pub ] && touch /etc/ssh/ssh_host_ecdsa_key.pub
-    chown root:root /etc/rc.d/init.d/sshd
-    chmod 755 /etc/rc.d/init.d/sshd
+}
+
+sshd_init(){
+    case "$1" in
+        "install")
+            cp -f /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
+            chkconfig --add sshd
+            chkconfig sshd on
+            chown root:root /etc/rc.d/init.d/sshd
+            chmod 755 /etc/rc.d/init.d/sshd
+            ;;
+        "uninstall")
+            chkconfig --del sshd > /dev/null 2>&1
+            rm -f /etc/ssh/moduli
+            rm -f /etc/rc.d/init.d/sshd
+            echo
+            ;;
+        "status")
+            service sshd status
+            ;;
+        "start")
+            service sshd start
+            ;;
+        "stop")
+            service sshd stop
+            ;;
+        *)
+            echo
+            ;;
+    esac
 }
 
 uninstall_old_openssh(){
@@ -146,26 +212,19 @@ uninstall_old_openssh(){
     rpm -e --test openssh-clients && yum -y remove openssh-clients
     yum -y remove openssh-server
     rpm -e --test openssh && yum -y remove openssh
-    chkconfig --del sshd > /dev/null 2>&1
-    rm -f /etc/ssh/moduli
-    rm -f /etc/rc.d/init.d/sshd
+    sshd_init uninstall
 }
 
 download_openssh(){
-    if [ ! -f ${openssh_ver}.tar.gz ];then
-        if ! wget --continue --timeout=6 --tries=3 --retry-connrefused -O ${openssh_ver}.tar.gz "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz";then
-            rm -f ${openssh_ver}.tar.gz
-            echo "${openssh_ver}.tar.gz download failed"
-            exit 1
-        fi
-    fi
-    tar xzf ${openssh_ver}.tar.gz || { echo "tar xzf ${openssh_ver}.tar.gz failed";rm -f ${openssh_ver}.tar.gz;exit 1;}
-    cd ${openssh_ver} || exit 1
-    chmod 744 configure || exit 1
+    cd /tmp || exit 1
+    declare -a url=(
+        "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
+        "https://pan.0db.org/directlink/1/dep/${openssh_ver}.tar.gz"
+    )
+    { _download "${url[@]}" && tar -zxf ${openssh_ver}.tar.gz && cd ${openssh_ver} && chmod 744 configure;} || exit 1
 }
 
 install_openssh(){
-    cd /tmp || exit 1
     download_openssh
     privsep
     local pam_option
@@ -180,7 +239,6 @@ install_openssh(){
     trap "" 2
     uninstall_old_openssh
     make install
-    cp -f /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
     if [ ${new_config} == no ]; then
         echo "mod config_bak"
         [ ${pam} == no ] && sed -i 's/UsePAM yes/#UsePAM no/' /etc/ssh/sshd_config_bak >/dev/null 2>&1
@@ -208,15 +266,13 @@ install_openssh(){
     modify_sshd_pam
     modify_selinux
     modify_permissions
-    chkconfig --add sshd
-    chkconfig sshd on
+    sshd_init install
     local sshd_pid
     sshd_pid=$(pgrep -ofP "$(cat /proc/sys/kernel/core_uses_pid)" /usr/sbin/sshd)
     [ -n "${sshd_pid}" ] && kill -TERM "${sshd_pid}"
     rm -f /var/run/sshd.pid
     rm -f /var/lock/subsys/sshd
-    service sshd start
-    service sshd status && ssh -V && echo "Completed" && exit 0
+    sshd_init start && ssh -V && echo "completed" && exit 0
 }
 
 clean_tmp(){
@@ -224,6 +280,12 @@ clean_tmp(){
     rm -rf /tmp/${libressl_ver}
     rm -rf /tmp/${openssh_ver}
 }
+
+_sysVer >/dev/null
+yum -y install net-tools >/dev/null
+sshd_port=$( netstat -lnp|grep sshd|grep -vE 'unix|:::'|awk '{print $4}'|awk -F':' '{print $2}' )
+[ -z "${sshd_port}" ] && sshd_port="22"
+export CFLAGS=-fPIC
 
 echo "-------------------------------------------"
 echo "libressl        : ${libressl_ver}"
