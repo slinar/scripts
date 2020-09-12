@@ -12,14 +12,15 @@ pam=no
 # Do not use openssl(libressl)
 without_openssl=no
 
-if [[ ${new_config} != yes && ${new_config} != no ]]; then
-    echo "new_config=yes or new_config=no"
+[[ "${new_config}" =~ yes|no ]] || { echo "The value of new_config is invalid";exit 1;}
+[[ "${pam}" =~ yes|no ]] || { echo "The value of pam is invalid";exit 1;}
+[[ "${without_openssl}" =~ yes|no ]] || { echo "The value of without_openssl is invalid";exit 1;}
+
+_checkPrivilege(){
+    touch /etc/checkPrivilege >/dev/null 2>&1 && rm -f /etc/checkPrivilege && return 0
+    echo "require root privileges"
     exit 1
-fi
-if [[ ${without_openssl} != yes && ${without_openssl} != no ]]; then
-    echo "without_openssl=yes or without_openssl=no"
-    exit 1
-fi
+}
 
 _sysVer(){
     local ver
@@ -244,6 +245,7 @@ install_openssh(){
         [ ${pam} == no ] && sed -i 's/UsePAM yes/#UsePAM no/' /etc/ssh/sshd_config_bak >/dev/null 2>&1
         [ ${pam} == yes ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config_bak >/dev/null 2>&1
         [ ${pam} == yes ] && sed -i 's/UsePAM no/UsePAM yes/' /etc/ssh/sshd_config_bak >/dev/null 2>&1
+        sed -i 's/#PermitRootLogin yes/PermitRootLogin yes/' /etc/ssh/sshd_config
         if /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
             echo "old config"
             rm -f /etc/ssh/sshd_config
@@ -281,6 +283,7 @@ clean_tmp(){
     rm -rf /tmp/${openssh_ver}
 }
 
+_checkPrivilege
 _sysVer >/dev/null
 yum -y install net-tools >/dev/null
 sshd_port=$( netstat -lnp|grep sshd|grep -vE 'unix|:::'|awk '{print $4}'|awk -F':' '{print $2}' )
