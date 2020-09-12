@@ -245,7 +245,7 @@ install_openssh(){
         [ ${pam} == no ] && sed -i 's/UsePAM yes/#UsePAM no/' /etc/ssh/sshd_config_bak >/dev/null 2>&1
         [ ${pam} == yes ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config_bak >/dev/null 2>&1
         [ ${pam} == yes ] && sed -i 's/UsePAM no/UsePAM yes/' /etc/ssh/sshd_config_bak >/dev/null 2>&1
-        sed -i 's/#PermitRootLogin yes/PermitRootLogin yes/' /etc/ssh/sshd_config
+        sed -i 's/#PermitRootLogin yes/PermitRootLogin yes/' /etc/ssh/sshd_config >/dev/null 2>&1
         if /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
             echo "old config"
             rm -f /etc/ssh/sshd_config
