@@ -117,9 +117,7 @@ modify_iptables(){
 }
 
 privsep(){
-    if [ ! -d /var/empty/sshd ];then
-        mkdir /var/empty/sshd || exit 1
-    fi
+    mkdir -p /var/empty/sshd
     chown root:sys /var/empty/sshd
     chmod 755 /var/empty/sshd
     gid=$( grep 'sshd:x:' /etc/passwd|awk -F : '{print $4}' )
