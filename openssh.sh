@@ -62,11 +62,9 @@ _download(){
             fi
             if [ -f "${fileName}" ]; then
                 tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
-                rm -f "${fileName}"
-                wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
-            else
-                wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+                rm -f "${fileName}"  
             fi
+            wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             rm -f "${fileName}"
         fi
     done
