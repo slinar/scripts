@@ -1,6 +1,6 @@
 #!/bin/bash
 
-openssh_ver="openssh-8.3p1"
+openssh_ver="openssh-8.4p1"
 libressl_ver="libressl-3.1.4"
 
 # Use default sshd_config
