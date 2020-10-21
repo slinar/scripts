@@ -229,7 +229,6 @@ install_openssh(){
     [ ${pam} == yes ] && pam_option='--with-pam'
     [ ${without_openssl} == yes ] && libressl_option='--without-openssl'
     [ ${without_openssl} == no ] && libressl_option='--with-ssl-dir=libressl'
-    unset CFLAGS
     ./configure --prefix=/usr --sysconfdir=/etc/ssh ${libressl_option} ${pam_option} --with-zlib=zlib --with-cflags=-fPIC --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd \
     || { echo "Failed to configure openssh";exit 1;}
     make || { echo "Failed to make openssh";exit 1;}
@@ -284,7 +283,8 @@ _sysVer >/dev/null
 yum -y install net-tools >/dev/null
 sshd_port=$( netstat -lnp|grep sshd|grep -vE 'unix|:::'|awk '{print $4}'|awk -F':' '{print $2}' )
 [ -z "${sshd_port}" ] && sshd_port="22"
-export CFLAGS=-fPIC
+export CFLAGS="-fPIC"
+export CXXFLAGS="-fPIC"
 
 echo "-------------------------------------------"
 echo "libressl        : ${libressl_ver}"
