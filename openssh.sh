@@ -206,9 +206,9 @@ uninstall_old_openssh(){
     cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak > /dev/null 2>&1
     mv -f /etc/ssh/ssh_config /etc/ssh/ssh_config_bak > /dev/null 2>&1
     mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak > /dev/null 2>&1
-    rpm -e --test openssh-clients && yum -y remove openssh-clients
-    yum -y remove openssh-server
-    rpm -e --test openssh && yum -y remove openssh
+    rpm -e --test openssh-clients > /dev/null 2>&1 && yum -y remove openssh-clients
+    yum -y remove openssh-server > /dev/null 2>&1
+    rpm -e --test openssh > /dev/null 2>&1 && yum -y remove openssh
     sshd_init uninstall
 }
 
@@ -279,8 +279,10 @@ clean_tmp(){
 }
 
 _checkPrivilege
-_sysVer >/dev/null
-yum -y install net-tools >/dev/null
+os_ver=$(_sysVer)
+if [[ "${os_ver}" == 7 || "${os_ver}" == 8 ]]; then
+    yum -y install net-tools >/dev/null
+fi
 sshd_port=$( netstat -lnp|grep sshd|grep -vE 'unix|:::'|awk '{print $4}'|awk -F':' '{print $2}' )
 [ -z "${sshd_port}" ] && sshd_port="22"
 export CFLAGS="-fPIC"
