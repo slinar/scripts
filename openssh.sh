@@ -115,6 +115,8 @@ modify_iptables(){
 }
 
 privsep(){
+    local gid
+    local gname
     mkdir -p /var/empty/sshd
     chown root:sys /var/empty/sshd
     chmod 755 /var/empty/sshd
@@ -302,7 +304,7 @@ read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
         echo
-        yum -y install gcc wget perl make pam-devel
+        yum -y install gcc wget perl make pam-devel || exit 1
         clean_tmp
         build_libressl
         build_zlib
