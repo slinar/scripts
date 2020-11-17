@@ -238,7 +238,7 @@ install_openssh(){
     uninstall_old_openssh
     make install
     if [ ${new_config} == no ]; then
-        [ ${pam} == no ] && sed -i 's/^\s*UsePAM\s\+yes\s*/UsePAM no/' /etc/ssh/sshd_config >/dev/null 2>&1
+        [ ${pam} == no ] && sed -i 's/^\s*UsePAM\s\+yes\s*/#UsePAM no/' /etc/ssh/sshd_config >/dev/null 2>&1
         [ ${pam} == yes ] && sed -i 's/\s*.*UsePAM\s\+no\s*/UsePAM yes/' /etc/ssh/sshd_config >/dev/null 2>&1
         if /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
             echo "The old sshd_config test is successful, use the old sshd_config"
