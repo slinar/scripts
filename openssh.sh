@@ -3,7 +3,7 @@
 openssh_ver="openssh-8.4p1"
 libressl_ver="libressl-3.2.2"
 
-# Use default sshd_config
+# Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 new_config=yes
 
 # Enables PAM support
@@ -238,25 +238,22 @@ install_openssh(){
     uninstall_old_openssh
     make install
     if [ ${new_config} == no ]; then
-        echo "mod config_bak"
-        [ ${pam} == no ] && sed -i 's/UsePAM yes/#UsePAM no/' /etc/ssh/sshd_config_bak >/dev/null 2>&1
-        [ ${pam} == yes ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config_bak >/dev/null 2>&1
-        [ ${pam} == yes ] && sed -i 's/UsePAM no/UsePAM yes/' /etc/ssh/sshd_config_bak >/dev/null 2>&1
-        sed -i 's/#PermitRootLogin yes/PermitRootLogin yes/' /etc/ssh/sshd_config >/dev/null 2>&1
+        [ ${pam} == no ] && sed -i 's/^\s*UsePAM\s\+yes\s*/UsePAM no/' /etc/ssh/sshd_config >/dev/null 2>&1
+        [ ${pam} == yes ] && sed -i 's/\s*.*UsePAM\s\+no\s*/UsePAM yes/' /etc/ssh/sshd_config >/dev/null 2>&1
         if /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
-            echo "old config"
+            echo "The old sshd_config test is successful, use the old sshd_config"
             rm -f /etc/ssh/sshd_config
             rm -f /etc/ssh/ssh_config
             mv -f /etc/ssh/sshd_config_bak /etc/ssh/sshd_config
             mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
         else
-            echo "new config"
+            echo "The old sshd_config test failed, use the new default sshd_config"
             rm -f /etc/ssh/sshd_config_bak
             rm -f /etc/ssh/ssh_config_bak
             modify_sshdconfig
         fi
     elif [ ${new_config} == yes ]; then
-        echo "new config"
+        echo "Use the new default sshd_config"
         rm -f /etc/ssh/sshd_config_bak
         rm -f /etc/ssh/ssh_config_bak
         modify_sshdconfig
