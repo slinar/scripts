@@ -1,7 +1,7 @@
 #!/bin/bash
 
 openssh_ver="openssh-8.4p1"
-libressl_ver="libressl-3.2.2"
+libressl_ver="libressl-3.2.3"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 new_config=yes
@@ -25,12 +25,12 @@ _checkPrivilege(){
 _sysVer(){
     local ver
     ver=$(awk '{print $3}' /etc/redhat-release|awk -F . '{print $1}')
-    if [ "${ver}" -eq 6 ]; then
+    if [ "${ver}" == 6 ]; then
         echo -n "${ver}"
         return
     else
         ver=$(awk '{print $4}' /etc/redhat-release|awk -F . '{print $1}')
-        if [[ "${ver}" -eq 7 || "${ver}" -eq 8 ]]; then
+        if [[ "${ver}" == 7 || "${ver}" == 8 ]]; then
             echo -n "${ver}"
             return
         fi
@@ -112,6 +112,11 @@ modify_iptables(){
         service iptables save
         service iptables restart
     fi
+}
+
+modify_firewalld(){
+    firewall-cmd --query-port "${sshd_port}"/tcp && return
+    firewall-cmd --add-port="${sshd_port}"/tcp --permanent && firewall-cmd --reload
 }
 
 privsep(){
