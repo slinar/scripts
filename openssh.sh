@@ -44,17 +44,15 @@ _download(){
     local fileName
     local tarFileName
     local tarOptions
-    declare -r urlReg='^(http|https)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
-    declare -r GReg='(\.tar\.gz|\.tgz)$'
-    declare -r BReg='(\.tar\.bz2)$'
+    declare -r urlReg='^(http|https|ftp)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
+    declare -r Reg='(\.tar\.gz|\.tgz|\.tar\.bz2|\.tar\.xz)$'
+    tar --version >/dev/null 2>&1 || yum -y install tar || exit 1
+    xz --version >/dev/null 2>&1 || yum -y install xz || exit 1
     for url in "$@"; do
         if [[ ${url} =~ ${urlReg} ]]; then
             fileName=$(echo "${url}"|awk -F / '{print $NF}')
-            if [[ "${fileName}" =~ ${GReg} ]]; then
-                tarOptions='-zxf'
-                tarFileName=${fileName}
-            elif [[ "${fileName}" =~ ${BReg} ]]; then
-                tarOptions='-jxf'
+            if [[ "${fileName}" =~ ${Reg} ]]; then
+                tarOptions='-axf'
                 tarFileName=${fileName}
             else
                 tarOptions='--version'
@@ -62,7 +60,7 @@ _download(){
             fi
             if [ -f "${fileName}" ]; then
                 tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
-                rm -f "${fileName}"  
+                rm -f "${fileName}"
             fi
             wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             rm -f "${fileName}"
