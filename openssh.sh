@@ -69,6 +69,18 @@ _download(){
     return 1
 }
 
+check_yum(){
+    local ver
+    ver=$(_sysVer)
+    [ "${ver}" -ne 6 ] && return
+    yum makecache || return
+    cd /etc/yum.repos.d || exit 1
+    mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
+    _download "https://el.0db.org/6/CentOS-Base.repo" || exit 1
+    yum clean && yum makecahce && return
+    exit 1
+}
+
 build_zlib(){
     cd /tmp || exit 1
     declare -a url=(
@@ -304,6 +316,7 @@ read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
         echo
+        check_yum
         yum -y install gcc wget perl make pam-devel || exit 1
         clean_tmp
         build_libressl
