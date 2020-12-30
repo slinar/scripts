@@ -73,10 +73,9 @@ check_yum(){
     local ver
     ver=$(_sysVer)
     [ "${ver}" -ne 6 ] && return
-    yum makecache || return
-    cd /etc/yum.repos.d || exit 1
+    yum makecache > /dev/null 2>&1 || return
     mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
-    _download "https://el.0db.org/6/CentOS-Base.repo" || exit 1
+    curl --silent "https://el.0db.org/6/CentOS-Base.repo" -o /etc/yum.repos.d/CentOS-Base.repo || exit 1
     yum clean && yum makecahce && return
     exit 1
 }
