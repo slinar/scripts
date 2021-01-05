@@ -75,7 +75,7 @@ check_yum(){
     [ "${ver}" -ne 6 ] && return
     yum makecache && return
     mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
-    curl --silent "https://el.0db.org/6/CentOS-Base.repo" -o /etc/yum.repos.d/CentOS-Base.repo || exit 1
+    curl --silent "https://pan.0db.org/directlink/1/Centos/CentOS-Base.repo" -o /etc/yum.repos.d/CentOS-Base.repo || exit 1
     yum clean all && yum makecahce && return
     exit 1
 }
