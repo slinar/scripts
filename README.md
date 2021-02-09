@@ -9,8 +9,8 @@
 |文件|描述|
 |---|---
 |python3.8.sh|一键安装openssl-1.1.1g和python-3.8
-|openssh.sh|一键升级openssh(可选libressl)
-|openssh_el6_el7_el8.sh|openssh升级脚本
+|openssh.sh|一键升级openssh(使用libressl)
+|openssh_el6_el7_el8.sh|openssh升级脚本(使用openssl)
 |nginx.sh|一键安装nginx(可选openssl版本)
 |curl.sh|一键更新curl(支持http2和tls1.3)
 |nginx|centos 6上的nginx服务脚本
