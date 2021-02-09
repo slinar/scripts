@@ -181,7 +181,6 @@ modify_selinux(){
 }
 
 modify_permissions(){
-    rm -f /etc/ssh/ssh_host_*
     /usr/bin/ssh-keygen -A
     [ ! -f /etc/ssh/ssh_host_rsa_key.pub ] && touch /etc/ssh/ssh_host_rsa_key.pub
     [ ! -f /etc/ssh/ssh_host_dsa_key.pub ] && touch /etc/ssh/ssh_host_dsa_key.pub
@@ -200,8 +199,8 @@ sshd_init(){
         "uninstall")
             chkconfig --del sshd > /dev/null 2>&1
             rm -f /etc/ssh/moduli
+            rm -f /etc/ssh/ssh_host_*
             rm -f /etc/rc.d/init.d/sshd
-            echo
             ;;
         "status")
             service sshd status
@@ -293,8 +292,9 @@ clean_tmp(){
 
 _checkPrivilege
 os_ver=$(_sysVer)
-if [[ "${os_ver}" == 7 || "${os_ver}" == 8 ]]; then
-    yum -y install net-tools >/dev/null
+if [ "${os_ver}" != 6 ]; then
+    echo "This script can only be used in centos 6."
+    exit 1
 fi
 sshd_port=$( netstat -lnp|grep sshd|grep -vE 'unix|:::'|awk '{print $4}'|awk -F':' '{print $2}' )
 [ -z "${sshd_port}" ] && sshd_port="22"
