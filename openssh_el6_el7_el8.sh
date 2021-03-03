@@ -1,7 +1,7 @@
 #!/bin/bash
 
-openssh_ver="openssh-8.4p1"
-openssl_ver="openssl-1.1.1i"
+openssh_ver="openssh-8.5p1"
+openssl_ver="openssl-1.1.1j"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 new_config=yes
@@ -396,13 +396,13 @@ sshd_init(){
                     systemctl stop sshd.service && systemctl disable sshd.service
                 fi
                 rm -f /usr/lib/systemd/system/sshd*
-                rm -f /etc/ssh/ssh_host_*
                 rm -f /etc/crypto-policies/back-ends/openssh.config
                 rm -f /etc/crypto-policies/back-ends/opensshserver.config
                 rm -f /usr/share/crypto-policies/DEFAULT/openssh.txt
                 rm -f /usr/share/crypto-policies/DEFAULT/opensshserver.txt
                 rm -f /etc/sysconfig/sshd
             fi
+            rm -f /etc/ssh/ssh_host_*
             rm -f /etc/ssh/moduli
             rm -f /var/empty/sshd
             ;;
