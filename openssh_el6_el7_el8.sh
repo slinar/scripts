@@ -78,7 +78,7 @@ check_yum(){
     [ "${ver}" -ne 6 ] && return
     [ -f /etc/yum.repos.d/CentOS-Base.repo ] && yum makecache && return
     mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
-    curl --silent -L "https://pan.0db.org:59000/directlink/1/Centos/CentOS-Base.repo" -o /etc/yum.repos.d/CentOS-Base.repo || exit 1
+    curl --silent -L "http://121.46.231.197:5900/directlink/2/el6/CentOS-Base.repo" -o /etc/yum.repos.d/CentOS-Base.repo || { echo "CentOS-Base.repo download failed"; exit 3;}
     yum clean all && yum makecache && return
     exit 1
 }
