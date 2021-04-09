@@ -1,64 +1,96 @@
 #!/bin/bash
 
-openssl_ver="openssl-1.1.1g"
+openssl_ver="openssl-1.1.1k"
 pcre_ver="pcre-8.44"
 nginx_ver="nginx-1.18.0"
-fancyindex_ver="ngx-fancyindex-0.4.4"
+fancyindex_ver="ngx-fancyindex-0.5.1"
+
+_checkPrivilege(){
+    touch /etc/checkPrivilege >/dev/null 2>&1 && rm -f /etc/checkPrivilege && return 0
+    echo "require root privileges"
+    exit 1
+}
+
+_sysVer(){
+    local ver
+    ver=$(awk '{print $3}' /etc/redhat-release|awk -F . '{print $1}')
+    if [ "${ver}" == 6 ]; then
+        echo -n "${ver}"
+        return
+    else
+        ver=$(awk '{print $4}' /etc/redhat-release|awk -F . '{print $1}')
+        if [[ "${ver}" == 7 || "${ver}" == 8 ]]; then
+            echo -n "${ver}"
+            return
+        fi
+    fi
+    echo "This linux distribution is not supported"
+    exit 1
+}
+
+_download(){
+    local url
+    local fileName
+    local tarFileName
+    local tarOptions
+    declare -r urlReg='^(http|https|ftp)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
+    declare -r Reg='(\.tar\.gz|\.tgz|\.tar\.bz2|\.tar\.xz)$'
+    tar --version >/dev/null 2>&1 || yum -y install tar || exit 1
+    xz --version >/dev/null 2>&1 || yum -y install xz || exit 1
+    wget --version >/dev/null 2>&1 || yum -y install wget
+    for url in "$@"; do
+        if [[ ${url} =~ ${urlReg} ]]; then
+            fileName=$(echo "${url}"|awk -F / '{print $NF}')
+            if [[ "${fileName}" =~ ${Reg} ]]; then
+                tarOptions='-axf'
+                tarFileName=${fileName}
+            else
+                tarOptions='--version'
+                tarFileName=''
+            fi
+            if [ -f "${fileName}" ]; then
+                tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+                rm -f "${fileName}"
+            fi
+            wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            rm -f "${fileName}"
+        fi
+    done
+    return 1
+}
 
 download_zlib(){
     cd /tmp || exit 1
-    if [ ! -f zlib-1.2.11.tar.gz ];then
-        if ! wget --continue --tries 3 --retry-connrefused -O zlib-1.2.11.tar.gz "https://zlib.net/zlib-1.2.11.tar.gz"; then
-            rm -f zlib-1.2.11.tar.gz
-            echo "zlib-1.2.11.tar.gz download failed!"
-            exit 1
-        fi
-    fi
-    tar xzf zlib-1.2.11.tar.gz || { rm -f zlib-1.2.11.tar.gz; exit 1;}
-    cd zlib-1.2.11 || exit 1
-    chmod 744 configure || exit 1
+    declare -a url=(
+        "https://zlib.net/zlib-1.2.11.tar.gz"
+    )
+    { _download "${url[@]}" && tar -axf zlib-1.2.11.tar.gz && cd zlib-1.2.11 && chmod 744 configure;} || exit 1
 }
 
 download_openssl(){
     cd /tmp || exit 1
-    if [ ! -f ${openssl_ver}.tar.gz ];then
-        if ! wget --continue --tries 3 --retry-connrefused -O ${openssl_ver}.tar.gz "https://www.openssl.org/source/${openssl_ver}.tar.gz"; then
-            rm -f ${openssl_ver}.tar.gz
-            echo "${openssl_ver}.tar.gz download failed!"
-            exit 1
-        fi
-    fi
-    tar xzf ${openssl_ver}.tar.gz || { rm -f ${openssl_ver}.tar.gz; exit 1;}
-    cd ${openssl_ver} || exit 1
-    chmod 744 config || exit 1
+    declare -a url=(
+        "https://www.openssl.org/source/${openssl_ver}.tar.gz"
+    )
+    { _download "${url[@]}" && tar -axf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
 }
 
 download_pcre(){
     cd /tmp || exit 1
-    if [ ! -f ${pcre_ver}.tar.gz ];then
-        if ! wget --continue --tries 3 --retry-connrefused -O ${pcre_ver}.tar.gz "https://ftp.pcre.org/pub/pcre/${pcre_ver}.tar.gz"; then
-            rm -f ${pcre_ver}.tar.gz
-            echo "${pcre_ver}.tar.gz download failed!"
-            exit 1
-        fi
-    fi
-    tar xzf ${pcre_ver}.tar.gz || { rm -f ${pcre_ver}.tar.gz; exit 1;}
-    cd ${pcre_ver} || exit 1
-    chmod 744 configure || exit 1
+    declare -a url=(
+        "https://ftp.pcre.org/pub/pcre/${pcre_ver}.tar.gz"
+    )
+    { _download "${url[@]}" && tar -axf ${pcre_ver}.tar.gz && cd ${pcre_ver} && chmod 744 configure;} || exit 1
 }
 
 install_fancyindex(){
     cd /tmp || exit 1
-    if [ ! -f ${fancyindex_ver}.tar.gz ];then
-        if ! wget --continue --tries 3 --retry-connrefused -O ${fancyindex_ver}.tar.gz "https://pan.0db.org/directlink/1/dep/${fancyindex_ver}.tar.gz"; then
-            rm -f ${fancyindex_ver}.tar.gz
-            echo "${fancyindex_ver}.tar.gz download failed!"
-            exit 1
-        fi
-    fi
-    tar xzf ${fancyindex_ver}.tar.gz || { rm -f ${fancyindex_ver}.tar.gz; exit 1;}
-    cd ${fancyindex_ver} || exit 1
+    declare -a url=(
+        "https://pan.0db.org:59000/directlink/1/dep/${fancyindex_ver}.tar.xz"
+    )
+    { _download "${url[@]}" && tar -axf ${fancyindex_ver}.tar.xz && cd ${fancyindex_ver};} || exit 1
     cd /tmp/${nginx_ver} || exit 1
+    chmod 744 configure || exit 1
     local src_ver
     local curr_ver
     src_ver=$(strings /usr/sbin/nginx|grep 'nginx version'|awk -F '/' '{print $2}')
@@ -80,12 +112,12 @@ uninstall_old_nginx(){
     yum -y remove nginx
     [ -d /etc/nginx_bak ] && mv /etc/nginx_bak /etc/nginx
     if nginx -v; then
-        service nginx stop
+        service nginx stop >/dev/null 2>&1
         killall nginx
         rm -f /var/lock/subsys/nginx
         rm -f /var/run/nginx.pid
     fi
-    chkconfig --del nginx
+    chkconfig --del nginx >/dev/null 2>&1
     rm -f /usr/sbin/nginx
     rm -f /etc/rc.d/init.d/nginx
     rm -rf /var/cache/nginx
@@ -135,16 +167,10 @@ configure_nginx(){
 
 install_nginx(){
     cd /tmp || exit 1
-    if [ ! -f ${nginx_ver}.tar.gz ]; then
-        if ! wget --continue --tries 3 --retry-connrefused -O ${nginx_ver}.tar.gz "https://nginx.org/download/${nginx_ver}.tar.gz"; then
-            rm -f ${nginx_ver}.tar.gz
-            echo "${nginx_ver}.tar.gz download failed!"
-            exit 1
-        fi
-    fi
-    tar xzf ${nginx_ver}.tar.gz || { rm -f ${nginx_ver}.tar.gz; exit 1;}
-    cd ${nginx_ver} || exit 1
-    chmod 744 configure || exit 1
+    declare -a url=(
+        "https://nginx.org/download/${nginx_ver}.tar.gz"
+    )
+    { _download "${url[@]}" && tar -axf ${nginx_ver}.tar.gz && cd ${nginx_ver} && chmod 744 configure;} || exit 1
     [ -f /var/cache/nginx ] && rm -f /var/cache/nginx
     mkdir -p /var/cache/nginx
     useradd -d /var/cache/nginx -s /sbin/nologin -c 'nginx user' nginx
@@ -153,7 +179,7 @@ install_nginx(){
     uninstall_old_nginx
     mkdir -p /var/cache/nginx
     make install || exit $?
-    wget --continue --tries 3 --retry-connrefused -O /etc/rc.d/init.d/nginx "https://pan.0db.org/directlink/1/dep/nginx" || exit 1
+    wget --continue --tries 3 --retry-connrefused -O /etc/rc.d/init.d/nginx "https://pan.0db.org:59000/directlink/1/dep/nginx" || exit 1
     chown root:root /etc/rc.d/init.d/nginx && chmod 755 /etc/rc.d/init.d/nginx
     chkconfig --add nginx
     chkconfig nginx on
@@ -169,6 +195,12 @@ clean_tmp(){
     rm -rf "/tmp/${nginx_ver}"
 }
 
+_checkPrivilege
+os_ver=$(_sysVer)
+if [ "${os_ver}" != 6 ]; then
+    echo "This script can only be used in centos 6."
+    exit 1
+fi
 [ "$1" == "index" ] && { install_fancyindex; exit $?;}
 
 echo
@@ -182,7 +214,7 @@ read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
         echo
-        yum -y install gcc gcc-c++ perl make wget pcre-devel openssl-devel zlib-devel
+        yum -y install gcc gcc-c++ perl make wget pcre-devel openssl-devel zlib-devel || exit 1
         clean_tmp
         download_openssl
         download_zlib

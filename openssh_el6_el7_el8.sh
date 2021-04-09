@@ -1,7 +1,7 @@
 #!/bin/bash
 
 openssh_ver="openssh-8.5p1"
-openssl_ver="openssl-1.1.1j"
+openssl_ver="openssl-1.1.1k"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 new_config=yes
@@ -9,7 +9,7 @@ new_config=yes
 # Enables PAM support
 pam=no
 
-# Do not use openssl
+# Do not use openssl?
 without_openssl=no
 
 [[ "${new_config}" =~ yes|no ]] || { echo "The value of new_config is invalid";exit 1;}
@@ -78,7 +78,7 @@ check_yum(){
     [ "${ver}" -ne 6 ] && return
     [ -f /etc/yum.repos.d/CentOS-Base.repo ] && yum makecache && return
     mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
-    curl --silent -L "https://pan.0db.org/directlink/1/Centos/CentOS-Base.repo" -o /etc/yum.repos.d/CentOS-Base.repo || exit 1
+    curl --silent -L "https://pan.0db.org:59000/directlink/1/Centos/CentOS-Base.repo" -o /etc/yum.repos.d/CentOS-Base.repo || exit 1
     yum clean all && yum makecache && return
     exit 1
 }
@@ -87,7 +87,6 @@ build_zlib(){
     cd /tmp || exit 1
     declare -a url=(
         "https://zlib.net/zlib-1.2.11.tar.gz"
-        "https://pan.0db.org/directlink/1/dep/zlib-1.2.11.tar.gz"
     )
     { _download "${url[@]}" && tar -zxf zlib-1.2.11.tar.gz && cd zlib-1.2.11 && chmod 744 configure;} || exit 1
     export CFLAGS="-fPIC"
@@ -102,7 +101,6 @@ build_openssl(){
     cd /tmp || exit 1
     declare -a url=(
         "https://www.openssl.org/source/${openssl_ver}.tar.gz"
-        "https://pan.0db.org/directlink/1/dep/${openssl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -zxf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
     ./config --prefix=/tmp/${openssh_ver}/openssl --openssldir=/tmp/${openssh_ver}/openssl/ssl -fPIC no-shared no-threads \
@@ -447,7 +445,6 @@ download_openssh(){
     cd /tmp || exit 1
     declare -a url=(
         "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
-        "https://pan.0db.org/directlink/1/dep/${openssh_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -zxf ${openssh_ver}.tar.gz && cd ${openssh_ver} && chmod 744 configure;} || exit 1
 }
