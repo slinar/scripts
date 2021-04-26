@@ -1,6 +1,6 @@
 #!/bin/bash
 
-openssh_ver="openssh-8.5p1"
+openssh_ver="openssh-8.6p1"
 openssl_ver="openssl-1.1.1k"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
@@ -29,7 +29,6 @@ _sysVer(){
         echo -n "${ver}"
         return
     else
-        export SYSTEMD_PAGER=cat
         ver=$(awk '{print $4}' /etc/redhat-release|awk -F . '{print $1}')
         if [[ "${ver}" == 7 || "${ver}" == 8 ]]; then
             echo -n "${ver}"
@@ -132,10 +131,13 @@ modify_firewalld(){
 
 modify_fw(){
     if [ "${os_ver}" == 6 ]; then
+        echo "modify_iptables(el6)"
         modify_iptables
     elif systemctl status firewalld.service; then
+        echo "modify_firewalld"
         modify_firewalld
     elif systemctl status iptables.service; then
+        echo "modify_iptables(el8)"
         modify_iptables
     fi
 }
@@ -390,7 +392,7 @@ sshd_init(){
                 chkconfig --del sshd > /dev/null 2>&1
                 rm -f /etc/rc.d/init.d/sshd
             else
-                if systemctl list-units --all --type=service|grep sshd.service >/dev/null; then
+                if systemctl list-unit-files | grep sshd.service >/dev/null; then
                     systemctl stop sshd.service && systemctl disable sshd.service
                 fi
                 rm -f /usr/lib/systemd/system/sshd*
@@ -408,7 +410,7 @@ sshd_init(){
             if [ "${os_ver}" == 6 ]; then
                 service sshd status
             else
-                systemctl status sshd.service
+                systemctl status sshd.service --no-pager --full
             fi
             ;;
         "start")
@@ -519,7 +521,7 @@ echo "without_openssl : ${without_openssl}"
 echo "Backup     : /etc/pam.d/sshd /etc/pam.d/sshd_bak"
 [ ${without_openssl} == yes ] && echo "[Warning] Your ssh client(SecureCRT >= 8.5.2) must support the following key exchange algorithms:" && printf "\tcurve25519-sha256\n\tcurve25519-sha256@libssh.org\n"
 echo "-------------------------------------------"
-read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
+read -r -n 1 -p "Please confirm the above information. Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
         echo
