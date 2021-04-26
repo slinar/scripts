@@ -133,7 +133,7 @@ modify_fw(){
     if [ "${os_ver}" == 6 ]; then
         echo "modify_iptables(el6)"
         modify_iptables
-    elif systemctl status firewalld.service; then
+    elif systemctl status firewalld.service --no-pager --full; then
         echo "modify_firewalld"
         modify_firewalld
     elif systemctl status iptables.service; then
