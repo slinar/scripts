@@ -1,7 +1,7 @@
 #!/bin/bash
 
-openssh_ver="openssh-8.5p1"
-libressl_ver="libressl-3.2.4"
+openssh_ver="openssh-8.6p1"
+libressl_ver="libressl-3.2.5"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 new_config=yes
@@ -75,7 +75,7 @@ check_yum(){
     [ "${ver}" -ne 6 ] && return
     [ -f /etc/yum.repos.d/CentOS-Base.repo ] && yum makecache && return
     mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
-    curl --silent -L "https://pan.0db.org/directlink/1/Centos/CentOS-Base.repo" -o /etc/yum.repos.d/CentOS-Base.repo || exit 1
+    curl --silent -L "http://121.46.231.197:5900/directlink/2/el6/CentOS-Base.repo" -o /etc/yum.repos.d/CentOS-Base.repo || exit 1
     yum clean all && yum makecache && return
     exit 1
 }
@@ -84,7 +84,6 @@ build_zlib(){
     cd /tmp || exit 1
     declare -a url=(
         "https://zlib.net/zlib-1.2.11.tar.gz"
-        "https://pan.0db.org/directlink/1/dep/zlib-1.2.11.tar.gz"
     )
     { _download "${url[@]}" && tar -zxf zlib-1.2.11.tar.gz && cd zlib-1.2.11 && chmod 744 configure;} || exit 1
     ./configure --prefix=/tmp/${openssh_ver}/zlib --static \
@@ -98,7 +97,6 @@ build_libressl(){
     cd /tmp || exit 1
     declare -a url=(
         "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"
-        "https://pan.0db.org/directlink/1/dep/${libressl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -zxf ${libressl_ver}.tar.gz && cd ${libressl_ver} && chmod 744 configure;} || exit 1
     ./configure --prefix=/tmp/${openssh_ver}/libressl --includedir=/usr/include --enable-shared=no --disable-tests \
@@ -231,7 +229,6 @@ download_openssh(){
     cd /tmp || exit 1
     declare -a url=(
         "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
-        "https://pan.0db.org/directlink/1/dep/${openssh_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -zxf ${openssh_ver}.tar.gz && cd ${openssh_ver} && chmod 744 configure;} || exit 1
 }
@@ -278,7 +275,7 @@ install_openssh(){
     sshd_init install
     local sshd_pid
     sshd_pid=$(pgrep -ofP "$(cat /proc/sys/kernel/core_uses_pid)" /usr/sbin/sshd)
-    [ -n "${sshd_pid}" ] && kill -TERM "${sshd_pid}"
+    [ -n "${sshd_pid}" ] && kill -9 "${sshd_pid}"
     rm -f /var/run/sshd.pid
     rm -f /var/lock/subsys/sshd
     sshd_init start && ssh -V && echo "completed" && exit 0
