@@ -2,7 +2,7 @@
 
 openssl_ver="openssl-1.1.1k"
 pcre_ver="pcre-8.44"
-nginx_ver="nginx-1.18.0"
+nginx_ver="nginx-1.20.0"
 fancyindex_ver="ngx-fancyindex-0.5.1"
 
 _checkPrivilege(){
@@ -111,12 +111,11 @@ uninstall_old_nginx(){
     [ -d /etc/nginx ] && mv /etc/nginx /etc/nginx_bak
     yum -y remove nginx
     [ -d /etc/nginx_bak ] && mv /etc/nginx_bak /etc/nginx
-    if nginx -v; then
-        service nginx stop >/dev/null 2>&1
-        killall nginx
-        rm -f /var/lock/subsys/nginx
-        rm -f /var/run/nginx.pid
-    fi
+    local pid
+    pid=$(pgrep -ofP "$(cat /proc/sys/kernel/core_uses_pid)" /usr/sbin/nginx)
+    pkill -s "${pid}"
+    rm -f /var/lock/subsys/nginx
+    rm -f /var/run/nginx.pid
     chkconfig --del nginx >/dev/null 2>&1
     rm -f /usr/sbin/nginx
     rm -f /etc/rc.d/init.d/nginx
