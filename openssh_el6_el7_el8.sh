@@ -532,7 +532,7 @@ case $input in
     "y")
         echo
         check_yum
-        yum -y install gcc wget perl make pam-devel || exit 1
+        yum -y install gcc wget perl make pam-devel ca-certificates || exit 1
         clean_tmp
         build_openssl
         build_zlib
