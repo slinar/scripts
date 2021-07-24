@@ -64,7 +64,9 @@ _download(){
                 tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
                 rm -f "${fileName}"
             fi
-            wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            echo "Downloading ${fileName} from ${url}"
+            #wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            curl --continue-at - --speed-limit 1024 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             rm -f "${fileName}"
         fi
     done
@@ -86,6 +88,7 @@ build_zlib(){
     cd /tmp || exit 1
     declare -a url=(
         "https://zlib.net/zlib-1.2.11.tar.gz"
+        "https://pan.0db.org:65000/dep/zlib-1.2.11.tar.gz"
     )
     { _download "${url[@]}" && tar -zxf zlib-1.2.11.tar.gz && cd zlib-1.2.11 && chmod 744 configure;} || exit 1
     export CFLAGS="-fPIC"
@@ -100,6 +103,7 @@ build_openssl(){
     cd /tmp || exit 1
     declare -a url=(
         "https://www.openssl.org/source/${openssl_ver}.tar.gz"
+        "https://pan.0db.org:65000/dep/${openssl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -zxf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
     ./config --prefix=/tmp/${openssh_ver}/openssl --openssldir=/tmp/${openssh_ver}/openssl/ssl -fPIC no-shared no-threads \
@@ -447,6 +451,7 @@ download_openssh(){
     cd /tmp || exit 1
     declare -a url=(
         "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
+        "https://pan.0db.org:65000/dep/${openssh_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -zxf ${openssh_ver}.tar.gz && cd ${openssh_ver} && chmod 744 configure;} || exit 1
 }
@@ -495,6 +500,7 @@ install_openssh(){
     sshd_pid=$(pgrep -ofP "$(cat /proc/sys/kernel/core_uses_pid)" /usr/sbin/sshd)
     [ -n "${sshd_pid}" ] && kill -TERM "${sshd_pid}"
     rm -f /var/run/sshd.pid
+    rm -f /run/sshd.pid
     rm -f /var/lock/subsys/sshd
     sshd_init start && ssh -V && echo "completed" && exit 0
 }
