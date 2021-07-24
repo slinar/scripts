@@ -75,7 +75,7 @@ build_zlib(){
     cd /tmp || exit 1
     declare -a url=(
         "https://zlib.net/zlib-1.2.11.tar.gz"
-        "https://pan.0db.org:59000/dep/zlib-1.2.11.tar.gz"
+        "https://pan.0db.org:65000/dep/zlib-1.2.11.tar.gz"
     )
     { _download "${url[@]}" && tar -axf zlib-1.2.11.tar.gz && cd zlib-1.2.11 && chmod 744 configure;} || exit 1
     ./configure --prefix=/tmp/zlib-static --static || exit 1
@@ -87,7 +87,7 @@ build_openssl(){
     cd /tmp || exit 1
     declare -a url=(
         "https://www.openssl.org/source/${openssl_ver}.tar.gz"
-        "https://pan.0db.org:59000/dep/${openssl_ver}.tar.gz"
+        "https://pan.0db.org:65000/dep/${openssl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
     ./config --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl -fPIC no-shared no-threads || exit 1
@@ -101,7 +101,7 @@ build_nghttp2(){
     ver_num=${nghttp2_ver:8:6}
     declare -a url=(
         "https://github.com/nghttp2/nghttp2/releases/download/v${ver_num}/${nghttp2_ver}.tar.gz"
-        "https://pan.0db.org:59000/dep/${nghttp2_ver}.tar.gz"
+        "https://pan.0db.org:65000/dep/${nghttp2_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${nghttp2_ver}.tar.gz && cd ${nghttp2_ver} && chmod 744 configure;} || exit 1
     export OPENSSL_LIBS=/tmp/openssl-static
@@ -114,7 +114,7 @@ install_pycurl(){
     cd /tmp || exit 1
     declare -a url=(
         "https://github.com/pycurl/pycurl/archive/refs/tags/${pycurl_ver}.tar.gz"
-        "https://pan.0db.org:59000/dep/${pycurl_ver}.tar.gz"
+        "https://pan.0db.org:65000/dep/${pycurl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${pycurl_ver}.tar.gz && cd pycurl-${pycurl_ver};} || exit 1
     python setup.py docstrings && python setup.py install --curl-config=/usr/bin/curl-config && return
@@ -125,7 +125,7 @@ install_curl(){
     cd /tmp || exit 1
     declare -a url=(
         "https://curl.se/download/${curl_ver}.tar.gz"
-        "https://pan.0db.org:59000/dep/${curl_ver}.tar.gz"
+        "https://pan.0db.org:65000/dep/${curl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${curl_ver}.tar.gz && cd ${curl_ver} && chmod 744 configure;} || exit 1
     ./configure \
