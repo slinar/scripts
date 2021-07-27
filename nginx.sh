@@ -2,7 +2,7 @@
 
 openssl_ver="openssl-1.1.1k"
 pcre_ver="pcre-8.44"
-nginx_ver="nginx-1.20.0"
+nginx_ver="nginx-1.20.1"
 fancyindex_ver="ngx-fancyindex-0.5.1"
 
 _checkPrivilege(){
@@ -160,7 +160,7 @@ configure_nginx(){
     --with-stream_ssl_preread_module \
     --with-zlib=/tmp/zlib-1.2.11 \
     --with-pcre=/tmp/${pcre_ver} \
-    --with-cc-opt='-O2 -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -mtune=generic -fPIC' \
+    --with-cc-opt='-O3 -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -mtune=generic -fPIC' \
     || { echo "configure ${nginx_ver} failed!";exit 1;}
 }
 
@@ -213,7 +213,7 @@ read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
         echo
-        yum -y install gcc gcc-c++ perl make wget pcre-devel openssl-devel zlib-devel || exit 1
+        yum -y install gcc gcc-c++ perl make wget pcre-devel openssl-devel zlib-devel ca-certificates || exit 1
         clean_tmp
         download_openssl
         download_zlib
