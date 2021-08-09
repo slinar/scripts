@@ -1,7 +1,7 @@
 #!/bin/bash
 
 openssl_ver="openssl-1.1.1k"
-pcre_ver="pcre-8.44"
+pcre_ver="pcre-8.45"
 nginx_ver="nginx-1.20.1"
 fancyindex_ver="ngx-fancyindex-0.5.1"
 
@@ -52,7 +52,8 @@ _download(){
                 tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
                 rm -f "${fileName}"
             fi
-            wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            echo "Downloading ${fileName} from ${url}"
+            curl --continue-at - --speed-limit 1024 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             rm -f "${fileName}"
         fi
     done
@@ -86,7 +87,7 @@ download_pcre(){
 install_fancyindex(){
     cd /tmp || exit 1
     declare -a url=(
-        "https://pan.0db.org:59000/directlink/1/dep/${fancyindex_ver}.tar.xz"
+        "https://pan.0db.org:65000/dep/${fancyindex_ver}.tar.xz"
     )
     { _download "${url[@]}" && tar -axf ${fancyindex_ver}.tar.xz && cd ${fancyindex_ver};} || exit 1
     cd /tmp/${nginx_ver} || exit 1
@@ -178,7 +179,7 @@ install_nginx(){
     uninstall_old_nginx
     mkdir -p /var/cache/nginx
     make install || exit $?
-    wget --continue --tries 3 --retry-connrefused -O /etc/rc.d/init.d/nginx "https://pan.0db.org:59000/directlink/1/dep/nginx" || exit 1
+    wget --continue --tries 3 --retry-connrefused -O /etc/rc.d/init.d/nginx "https://pan.0db.org:65000/dep/nginx" || exit 1
     chown root:root /etc/rc.d/init.d/nginx && chmod 755 /etc/rc.d/init.d/nginx
     chkconfig --add nginx
     chkconfig nginx on
@@ -200,7 +201,8 @@ if [ "${os_ver}" != 6 ]; then
     echo "This script can only be used in centos 6."
     exit 1
 fi
-[ "$1" == "index" ] && { install_fancyindex; exit $?;}
+[ "$1" == "index" ] && { install_fancyindex; exit;}
+[ "$1" == "config" ] && { configure_nginx; exit;}
 
 echo
 echo "openssl          : ${openssl_ver}"
