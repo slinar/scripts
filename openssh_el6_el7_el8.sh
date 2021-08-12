@@ -147,7 +147,7 @@ modify_fw(){
 }
 
 systemd_sshd(){
-    cat > /usr/lib/systemd/system/sshd.service<<EOF
+    cat > /usr/lib/systemd/system/sshd.service<<"EOF"
 [Unit]
 Description=OpenSSH server daemon
 Documentation=man:sshd(8) man:sshd_config(5)
@@ -158,7 +158,8 @@ Wants=sshd-keygen.target
 Type=simple
 EnvironmentFile=-/etc/crypto-policies/back-ends/opensshserver.config
 EnvironmentFile=-/etc/sysconfig/sshd
-ExecStart=/usr/sbin/sshd -D $OPTIONS $CRYPTO_POLICY
+ExecStartPre=/usr/sbin/sshd -t
+ExecStart=/usr/sbin/sshd -D
 ExecReload=/bin/kill -HUP $MAINPID
 KillMode=process
 Restart=on-failure
@@ -168,7 +169,7 @@ RestartSec=42s
 WantedBy=multi-user.target
 EOF
 
-    cat > /usr/lib/systemd/system/sshd@.service<<EOF
+    cat > /usr/lib/systemd/system/sshd@.service<<"EOF"
 [Unit]
 Description=OpenSSH per-connection server daemon
 Documentation=man:sshd(8) man:sshd_config(5)
