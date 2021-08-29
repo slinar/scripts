@@ -1,7 +1,7 @@
 #!/bin/bash
-openssl_ver="openssl-1.1.1k"
+openssl_ver="openssl-1.1.1l"
 nghttp2_ver="nghttp2-1.44.0"
-curl_ver="curl-7.77.0"
+curl_ver="curl-7.78.0"
 pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){
