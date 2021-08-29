@@ -1,7 +1,7 @@
 #!/bin/bash
 
-openssh_ver="openssh-8.6p1"
-openssl_ver="openssl-1.1.1k"
+openssh_ver="openssh-8.7p1"
+openssl_ver="openssl-1.1.1l"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 new_config=yes
@@ -452,7 +452,7 @@ uninstall_old_openssh(){
 download_openssh(){
     cd /tmp || exit 1
     declare -a url=(
-        "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
+        "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
         "https://pan.0db.org:65000/dep/${openssh_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -zxf ${openssh_ver}.tar.gz && cd ${openssh_ver} && chmod 744 configure;} || exit 1
@@ -514,10 +514,8 @@ clean_tmp(){
 }
 
 _checkPrivilege
-if [[ "${os_ver}" == 7 || "${os_ver}" == 8 ]]; then
-    yum -y install net-tools >/dev/null
-fi
-sshd_port=$( netstat -lnp|grep sshd|grep -vE 'unix|:::'|awk '{print $4}'|awk -F':' '{print $2}' )
+
+sshd_port=$(ss -lnpt4|grep sshd|awk '{print $4}'|awk -F : '{print $2}')
 [ -z "${sshd_port}" ] && sshd_port="22"
 echo "-------------------------------------------"
 echo "openssl         : ${openssl_ver}"

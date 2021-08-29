@@ -1,7 +1,7 @@
 #!/bin/bash
 
-openssh_ver="openssh-8.6p1"
-libressl_ver="libressl-3.3.3"
+openssh_ver="openssh-8.7p1"
+libressl_ver="libressl-3.3.4"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 new_config=yes
@@ -62,7 +62,8 @@ _download(){
                 tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
                 rm -f "${fileName}"
             fi
-            wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            echo "Downloading ${fileName} from ${url}"
+            curl --continue-at - --speed-limit 1024 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             rm -f "${fileName}"
         fi
     done
@@ -84,6 +85,7 @@ build_zlib(){
     cd /tmp || exit 1
     declare -a url=(
         "https://zlib.net/zlib-1.2.11.tar.gz"
+        "https://pan.0db.org:65000/dep/zlib-1.2.11.tar.gz"
     )
     { _download "${url[@]}" && tar -zxf zlib-1.2.11.tar.gz && cd zlib-1.2.11 && chmod 744 configure;} || exit 1
     ./configure --prefix=/tmp/${openssh_ver}/zlib --static \
@@ -97,6 +99,7 @@ build_libressl(){
     cd /tmp || exit 1
     declare -a url=(
         "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"
+        "https://pan.0db.org:65000/dep/${libressl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -zxf ${libressl_ver}.tar.gz && cd ${libressl_ver} && chmod 744 configure;} || exit 1
     ./configure --prefix=/tmp/${openssh_ver}/libressl --includedir=/usr/include --enable-shared=no --disable-tests \
@@ -228,7 +231,8 @@ uninstall_old_openssh(){
 download_openssh(){
     cd /tmp || exit 1
     declare -a url=(
-        "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
+        "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
+        "https://pan.0db.org:65000/dep/${openssh_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -zxf ${openssh_ver}.tar.gz && cd ${openssh_ver} && chmod 744 configure;} || exit 1
 }
@@ -293,7 +297,7 @@ if [ "${os_ver}" != 6 ]; then
     echo "This script can only be used in centos 6."
     exit 1
 fi
-sshd_port=$( netstat -lnp|grep sshd|grep -vE 'unix|:::'|awk '{print $4}'|awk -F':' '{print $2}' )
+sshd_port=$(ss -lnpt4|grep sshd|awk '{print $4}'|awk -F : '{print $2}')
 [ -z "${sshd_port}" ] && sshd_port="22"
 export CFLAGS="-fPIC"
 export CXXFLAGS="-fPIC"
@@ -313,7 +317,7 @@ case $input in
     "y")
         echo
         check_yum
-        yum -y install gcc wget perl make pam-devel || exit 1
+        yum -y install gcc wget perl make pam-devel ca-certificates || exit 1
         clean_tmp
         build_libressl
         build_zlib
