@@ -12,6 +12,24 @@ pam=no
 # Do not use openssl?
 without_openssl=no
 
+# Download url
+declare -ra zlib_url=(
+    "https://zlib.net/zlib-1.2.11.tar.gz"
+    "https://pan.0db.org:65000/dep/zlib-1.2.11.tar.gz"
+)
+
+declare -ra openssl_url=(
+    "https://www.openssl.org/source/${openssl_ver}.tar.gz"
+    "https://pan.0db.org:65000/dep/${openssl_ver}.tar.gz"
+)
+
+declare -ra openssh_url=(
+    "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
+    "https://pan.0db.org:65000/dep/${openssh_ver}.tar.gz"
+)
+
+declare -r el6_repo_url="https://pan.0db.org:65000/Centos/CentOS-Base.repo"
+
 [[ "${new_config}" =~ yes|no ]] || { echo "The value of new_config is invalid";exit 1;}
 [[ "${pam}" =~ yes|no ]] || { echo "The value of pam is invalid";exit 1;}
 [[ "${without_openssl}" =~ yes|no ]] || { echo "The value of without_openssl is invalid";exit 1;}
@@ -65,7 +83,6 @@ _download(){
                 rm -f "${fileName}"
             fi
             echo "Downloading ${fileName} from ${url}"
-            #wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             curl --continue-at - --speed-limit 1024 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             rm -f "${fileName}"
         fi
@@ -79,18 +96,14 @@ check_yum(){
     [ "${ver}" -ne 6 ] && return
     [ -f /etc/yum.repos.d/CentOS-Base.repo ] && yum makecache && return
     mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
-    curl --silent -L "https://pan.0db.org:65000/Centos/CentOS-Base.repo" -o /etc/yum.repos.d/CentOS-Base.repo || { echo "CentOS-Base.repo download failed"; exit 3;}
+    curl --silent -L ${el6_repo_url} -o /etc/yum.repos.d/CentOS-Base.repo || { echo "CentOS-Base.repo download failed"; exit 3;}
     yum clean all && yum makecache && return
     exit 1
 }
 
 build_zlib(){
     cd /tmp || exit 1
-    declare -a url=(
-        "https://zlib.net/zlib-1.2.11.tar.gz"
-        "https://pan.0db.org:65000/dep/zlib-1.2.11.tar.gz"
-    )
-    { _download "${url[@]}" && tar -zxf zlib-1.2.11.tar.gz && cd zlib-1.2.11 && chmod 744 configure;} || exit 1
+    { _download "${zlib_url[@]}" && tar -zxf zlib-1.2.11.tar.gz && cd zlib-1.2.11 && chmod 744 configure;} || exit 1
     export CFLAGS="-fPIC"
     ./configure --prefix=/tmp/${openssh_ver}/zlib --static \
     || { echo "Failed to configure zlib";exit 1;}
@@ -101,11 +114,7 @@ build_zlib(){
 build_openssl(){
     [ ${without_openssl} == yes ] && return
     cd /tmp || exit 1
-    declare -a url=(
-        "https://www.openssl.org/source/${openssl_ver}.tar.gz"
-        "https://pan.0db.org:65000/dep/${openssl_ver}.tar.gz"
-    )
-    { _download "${url[@]}" && tar -zxf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
+    { _download "${openssl_url[@]}" && tar -zxf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
     ./config --prefix=/tmp/${openssh_ver}/openssl --openssldir=/tmp/${openssh_ver}/openssl/ssl -fPIC no-shared no-threads \
     || { echo "Failed to config openssl";exit 1;}
     make && make install_sw && return
@@ -371,7 +380,7 @@ modify_selinux(){
     setenforce 0
 }
 
-modify_permissions(){
+generate_host_key(){
     /usr/bin/ssh-keygen -A
     [ ! -f /etc/ssh/ssh_host_rsa_key.pub ] && touch /etc/ssh/ssh_host_rsa_key.pub
     [ ! -f /etc/ssh/ssh_host_dsa_key.pub ] && touch /etc/ssh/ssh_host_dsa_key.pub
@@ -410,7 +419,7 @@ sshd_init(){
             fi
             rm -f /etc/ssh/ssh_host_*
             rm -f /etc/ssh/moduli
-            rm -f /var/empty/sshd
+            rm -rf /var/empty/sshd
             ;;
         "status")
             if [ "${os_ver}" == 6 ]; then
@@ -451,11 +460,7 @@ uninstall_old_openssh(){
 
 download_openssh(){
     cd /tmp || exit 1
-    declare -a url=(
-        "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
-        "https://pan.0db.org:65000/dep/${openssh_ver}.tar.gz"
-    )
-    { _download "${url[@]}" && tar -zxf ${openssh_ver}.tar.gz && cd ${openssh_ver} && chmod 744 configure;} || exit 1
+    { _download "${openssh_url[@]}" && tar -zxf ${openssh_ver}.tar.gz && cd ${openssh_ver} && chmod 744 configure;} || exit 1
 }
 
 install_openssh(){
@@ -496,7 +501,7 @@ install_openssh(){
     modify_fw
     modify_sshd_pam
     modify_selinux
-    modify_permissions
+    generate_host_key
     sshd_init install
     local sshd_pid
     sshd_pid=$(pgrep -ofP "$(cat /proc/sys/kernel/core_uses_pid)" /usr/sbin/sshd)
