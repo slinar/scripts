@@ -1,7 +1,7 @@
 #!/bin/bash
 openssl_ver="openssl-1.1.1l"
-nghttp2_ver="nghttp2-1.44.0"
-curl_ver="curl-7.78.0"
+nghttp2_ver="nghttp2-1.45.1"
+curl_ver="curl-7.79.1"
 pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){
@@ -52,7 +52,7 @@ _download(){
             fi
             echo "Downloading ${fileName} from ${url}"
             #wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
-            curl --continue-at - --speed-limit 1024 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             rm -f "${fileName}"
         fi
     done
@@ -144,6 +144,7 @@ install_curl(){
 
 show_curl_ver(){
     curl --version || echo 'curl is not installed correctly!'
+    echo "completed"
 }
 
 check_ca(){

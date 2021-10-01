@@ -1,6 +1,6 @@
 #!/bin/bash
 
-openssh_ver="openssh-8.7p1"
+openssh_ver="openssh-8.8p1"
 openssl_ver="openssl-1.1.1l"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
@@ -83,7 +83,7 @@ _download(){
                 rm -f "${fileName}"
             fi
             echo "Downloading ${fileName} from ${url}"
-            curl --continue-at - --speed-limit 1024 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             rm -f "${fileName}"
         fi
     done
