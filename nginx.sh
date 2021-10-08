@@ -35,9 +35,7 @@ _download(){
     local tarOptions
     declare -r urlReg='^(http|https|ftp)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
     declare -r Reg='(\.tar\.gz|\.tgz|\.tar\.bz2|\.tar\.xz)$'
-    tar --version >/dev/null 2>&1 || yum -y install tar || exit 1
     xz --version >/dev/null 2>&1 || yum -y install xz || exit 1
-    wget --version >/dev/null 2>&1 || yum -y install wget
     for url in "$@"; do
         if [[ ${url} =~ ${urlReg} ]]; then
             fileName=$(echo "${url}"|awk -F / '{print $NF}')
@@ -53,7 +51,7 @@ _download(){
                 rm -f "${fileName}"
             fi
             echo "Downloading ${fileName} from ${url}"
-            curl --continue-at - --speed-limit 1024 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             rm -f "${fileName}"
         fi
     done
@@ -179,8 +177,10 @@ install_nginx(){
     uninstall_old_nginx
     mkdir -p /var/cache/nginx
     make install || exit $?
-    wget --continue --tries 3 --retry-connrefused -O /etc/rc.d/init.d/nginx "https://pan.0db.org:65000/dep/nginx" || exit 1
+    echo "Download nginx from https://pan.0db.org:65000/dep/nginx to /etc/rc.d/init.d/nginx"
+    curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "https://pan.0db.org:65000/dep/nginx" -o /etc/rc.d/init.d/nginx || exit 1
     chown root:root /etc/rc.d/init.d/nginx && chmod 755 /etc/rc.d/init.d/nginx
+    chown root:root /usr/sbin/nginx && chmod 755 /usr/sbin/nginx
     chkconfig --add nginx
     chkconfig nginx on
     rm -f /etc/nginx/*.default
@@ -202,7 +202,7 @@ if [ "${os_ver}" != 6 ]; then
     exit 1
 fi
 [ "$1" == "index" ] && { install_fancyindex; exit;}
-[ "$1" == "config" ] && { configure_nginx; exit;}
+[ "$1" == "config" ] && { download_openssl && download_zlib && download_pcre && cd /tmp/${nginx_ver} && configure_nginx; exit;}
 
 echo
 echo "openssl          : ${openssl_ver}"
@@ -215,7 +215,7 @@ read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
         echo
-        yum -y install gcc gcc-c++ perl make wget pcre-devel openssl-devel zlib-devel ca-certificates || exit 1
+        yum -y install gcc gcc-c++ perl make pcre-devel openssl-devel zlib-devel ca-certificates || exit 1
         clean_tmp
         download_openssl
         download_zlib
