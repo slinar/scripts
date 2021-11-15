@@ -13,11 +13,6 @@ pam=no
 without_openssl=no
 
 # Download url
-declare -ra zlib_url=(
-    "https://zlib.net/zlib-1.2.11.tar.gz"
-    "https://pan.0db.org:65000/dep/zlib-1.2.11.tar.gz"
-)
-
 declare -ra openssl_url=(
     "https://www.openssl.org/source/${openssl_ver}.tar.gz"
     "https://pan.0db.org:65000/dep/${openssl_ver}.tar.gz"
@@ -41,20 +36,15 @@ _checkPrivilege(){
 }
 
 _sysVer(){
-    local ver
-    ver=$(awk '{print $3}' /etc/redhat-release|awk -F . '{print $1}')
-    if [ "${ver}" == 6 ]; then
-        echo -n "${ver}"
+    local v
+    local vv
+    v=$(uname -r|awk -F . '{print $(NF-1)}')
+    vv=${v:2:1}
+    if [[ "${vv}" == 8 || "${vv}" == 7 || "${vv}" == 6 ]]; then
+        echo -n "${v:2:1}"
         return
-    else
-        ver=$(awk '{print $4}' /etc/redhat-release|awk -F . '{print $1}')
-        if [[ "${ver}" == 7 || "${ver}" == 8 ]]; then
-            echo -n "${ver}"
-            return
-        fi
     fi
-    echo "This linux distribution is not supported"
-    exit 1
+    exit 2
 }
 
 os_ver=$(_sysVer)
@@ -66,7 +56,6 @@ _download(){
     local tarOptions
     declare -r urlReg='^(http|https|ftp)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
     declare -r Reg='(\.tar\.gz|\.tgz|\.tar\.bz2|\.tar\.xz)$'
-    tar --version >/dev/null 2>&1 || yum -y install tar || exit 1
     xz --version >/dev/null 2>&1 || yum -y install xz || exit 1
     for url in "$@"; do
         if [[ ${url} =~ ${urlReg} ]]; then
@@ -91,23 +80,11 @@ _download(){
 }
 
 check_yum(){
-    local ver
-    ver=$(_sysVer)
-    [ "${ver}" -ne 6 ] && return
+    [ "${os_ver}" != 6 ] && return
     [ -f /etc/yum.repos.d/CentOS-Base.repo ] && yum makecache && return
     mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
     curl --silent -L ${el6_repo_url} -o /etc/yum.repos.d/CentOS-Base.repo || { echo "CentOS-Base.repo download failed"; exit 3;}
     yum clean all && yum makecache && return
-    exit 1
-}
-
-build_zlib(){
-    cd /tmp || exit 1
-    { _download "${zlib_url[@]}" && tar -zxf zlib-1.2.11.tar.gz && cd zlib-1.2.11 && chmod 744 configure;} || exit 1
-    export CFLAGS="-fPIC"
-    ./configure --prefix=/tmp/${openssh_ver}/zlib --static \
-    || { echo "Failed to configure zlib";exit 1;}
-    make && make install && unset CFLAGS && return
     exit 1
 }
 
@@ -139,7 +116,9 @@ modify_iptables(){
 }
 
 modify_firewalld(){
+    echo -n "Check the tcp/22 port in firewalld: "
     firewall-cmd --query-port "${sshd_port}"/tcp && return
+    echo "Modify firewalld: "
     firewall-cmd --add-port="${sshd_port}"/tcp --permanent && firewall-cmd --reload
 }
 
@@ -471,7 +450,7 @@ install_openssh(){
     [ ${pam} == yes ] && pam_option='--with-pam'
     [ ${without_openssl} == yes ] && openssl_option='--without-openssl'
     [ ${without_openssl} == no ] && openssl_option="--with-ssl-dir=/tmp/${openssh_ver}/openssl"
-    ./configure --prefix=/usr --sysconfdir=/etc/ssh ${openssl_option} ${pam_option} --with-zlib=/tmp/${openssh_ver}/zlib --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd --with-pie \
+    ./configure --prefix=/usr --sysconfdir=/etc/ssh ${openssl_option} ${pam_option} --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd --without-zlib --with-pie \
     || { echo "Failed to configure openssh";exit 1;}
     make || { echo "Failed to make openssh";exit 1;}
     trap "" 2
@@ -537,10 +516,9 @@ case $input in
     "y")
         echo
         check_yum
-        yum -y install gcc wget perl make pam-devel ca-certificates || exit 1
+        yum -y install gcc tar perl make pam-devel ca-certificates || exit 1
         clean_tmp
         build_openssl
-        build_zlib
         install_openssh
         ;;
     *)
