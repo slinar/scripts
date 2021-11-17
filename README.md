@@ -14,7 +14,6 @@ centos 6通用, 如需在其他版本的系统上使用请自行测试修改
 |nginx.sh|一键安装nginx(可选openssl版本)
 |curl.sh|curl升级脚本(http2&tls1.3)
 |nginx|centos 6上的nginx服务脚本
-|nginx.conf|ngx-fancyindex示例配置
 
 
 * openssh可以不依赖openssl或libressl编译
