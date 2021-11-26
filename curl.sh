@@ -1,7 +1,7 @@
 #!/bin/bash
 openssl_ver="openssl-1.1.1l"
-nghttp2_ver="nghttp2-1.45.1"
-curl_ver="curl-7.79.1"
+nghttp2_ver="nghttp2-1.46.0"
+curl_ver="curl-7.80.0"
 pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){
@@ -11,20 +11,15 @@ _checkPrivilege(){
 }
 
 _sysVer(){
-    local ver
-    ver=$(awk '{print $3}' /etc/redhat-release|awk -F . '{print $1}')
-    if [ "${ver}" == 6 ]; then
-        echo -n "${ver}"
+    local v
+    local vv
+    v=$(uname -r|awk -F . '{print $(NF-1)}')
+    vv=${v:2:1}
+    if [[ "${vv}" == 8 || "${vv}" == 7 || "${vv}" == 6 ]]; then
+        echo -n "${v:2:1}"
         return
-    else
-        ver=$(awk '{print $4}' /etc/redhat-release|awk -F . '{print $1}')
-        if [[ "${ver}" == 7 || "${ver}" == 8 ]]; then
-            echo -n "${ver}"
-            return
-        fi
     fi
-    echo "This linux distribution is not supported"
-    exit 1
+    exit 2
 }
 
 _download(){
@@ -34,8 +29,8 @@ _download(){
     local tarOptions
     declare -r urlReg='^(http|https|ftp)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
     declare -r Reg='(\.tar\.gz|\.tgz|\.tar\.bz2|\.tar\.xz)$'
-    tar --version >/dev/null 2>&1 || yum -y install tar || exit 1
-    xz --version >/dev/null 2>&1 || yum -y install xz || exit 1
+    [ ! -x /usr/bin/tar ] && yum -y install tar
+    [ ! -x /usr/bin/xz ] && yum -y install xz
     for url in "$@"; do
         if [[ ${url} =~ ${urlReg} ]]; then
             fileName=$(echo "${url}"|awk -F / '{print $NF}')
