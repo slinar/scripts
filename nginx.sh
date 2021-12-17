@@ -1,9 +1,8 @@
 #!/bin/bash
 
-openssl_ver="openssl-1.1.1k"
-pcre_ver="pcre-8.45"
-nginx_ver="nginx-1.20.1"
-fancyindex_ver="ngx-fancyindex-0.5.1"
+openssl_ver="openssl-1.1.1m"
+nginx_ver="nginx-1.20.2"
+fancyindex_ver="ngx-fancyindex-0.5.2"
 
 _checkPrivilege(){
     touch /etc/checkPrivilege >/dev/null 2>&1 && rm -f /etc/checkPrivilege && return 0
@@ -12,20 +11,15 @@ _checkPrivilege(){
 }
 
 _sysVer(){
-    local ver
-    ver=$(awk '{print $3}' /etc/redhat-release|awk -F . '{print $1}')
-    if [ "${ver}" == 6 ]; then
-        echo -n "${ver}"
+    local v
+    local vv
+    v=$(uname -r|awk -F . '{print $(NF-1)}')
+    vv=${v:2:1}
+    if [[ "${vv}" == 8 || "${vv}" == 7 || "${vv}" == 6 ]]; then
+        echo -n "${v:2:1}"
         return
-    else
-        ver=$(awk '{print $4}' /etc/redhat-release|awk -F . '{print $1}')
-        if [[ "${ver}" == 7 || "${ver}" == 8 ]]; then
-            echo -n "${ver}"
-            return
-        fi
     fi
-    echo "This linux distribution is not supported"
-    exit 1
+    exit 2
 }
 
 _download(){
@@ -35,7 +29,8 @@ _download(){
     local tarOptions
     declare -r urlReg='^(http|https|ftp)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
     declare -r Reg='(\.tar\.gz|\.tgz|\.tar\.bz2|\.tar\.xz)$'
-    xz --version >/dev/null 2>&1 || yum -y install xz || exit 1
+    [ ! -x /usr/bin/tar ] && yum -y install tar
+    [ ! -x /usr/bin/xz ] && yum -y install xz
     for url in "$@"; do
         if [[ ${url} =~ ${urlReg} ]]; then
             fileName=$(echo "${url}"|awk -F / '{print $NF}')
@@ -77,9 +72,9 @@ download_openssl(){
 download_pcre(){
     cd /tmp || exit 1
     declare -a url=(
-        "https://ftp.pcre.org/pub/pcre/${pcre_ver}.tar.gz"
+        "https://pan.0db.org:65000/dep/pcre-8.45.tar.gz"
     )
-    { _download "${url[@]}" && tar -axf ${pcre_ver}.tar.gz && cd ${pcre_ver} && chmod 744 configure;} || exit 1
+    { _download "${url[@]}" && tar -axf pcre-8.45.tar.gz && cd pcre-8.45 && chmod 744 configure;} || exit 1
 }
 
 install_fancyindex(){
@@ -158,7 +153,7 @@ configure_nginx(){
     --with-stream_ssl_module \
     --with-stream_ssl_preread_module \
     --with-zlib=/tmp/zlib-1.2.11 \
-    --with-pcre=/tmp/${pcre_ver} \
+    --with-pcre=/tmp/pcre-8.45 \
     --with-cc-opt='-O3 -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector --param=ssp-buffer-size=4 -m64 -mtune=generic -fPIC' \
     || { echo "configure ${nginx_ver} failed!";exit 1;}
 }
@@ -190,7 +185,7 @@ install_nginx(){
 clean_tmp(){
     rm -rf "/tmp/${openssl_ver}"
     rm -rf "/tmp/zlib-1.2.11"
-    rm -rf "/tmp/${pcre_ver}"
+    rm -rf "/tmp/pcre-8.45"
     rm -rf "/tmp/${fancyindex_ver}"
     rm -rf "/tmp/${nginx_ver}"
 }
@@ -207,7 +202,6 @@ fi
 echo
 echo "openssl          : ${openssl_ver}"
 echo "nginx            : ${nginx_ver}"
-echo "pcre             : ${pcre_ver}"
 echo "fancyindex       : ${fancyindex_ver}"
 echo
 echo 'You can execute "nginx.sh index" and install the fancyindex module separately'

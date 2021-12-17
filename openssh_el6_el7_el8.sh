@@ -1,7 +1,7 @@
 #!/bin/bash
 
 openssh_ver="openssh-8.8p1"
-openssl_ver="openssl-1.1.1l"
+openssl_ver="openssl-1.1.1m"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 new_config=yes
@@ -56,7 +56,8 @@ _download(){
     local tarOptions
     declare -r urlReg='^(http|https|ftp)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
     declare -r Reg='(\.tar\.gz|\.tgz|\.tar\.bz2|\.tar\.xz)$'
-    xz --version >/dev/null 2>&1 || yum -y install xz || exit 1
+    [ ! -x /usr/bin/tar ] && yum -y install tar
+    [ ! -x /usr/bin/xz ] && yum -y install xz
     for url in "$@"; do
         if [[ ${url} =~ ${urlReg} ]]; then
             fileName=$(echo "${url}"|awk -F / '{print $NF}')
@@ -442,6 +443,15 @@ download_openssh(){
     { _download "${openssh_url[@]}" && tar -zxf ${openssh_ver}.tar.gz && cd ${openssh_ver} && chmod 744 configure;} || exit 1
 }
 
+kill_sshd_main_process(){
+    local sshd_pid
+    sshd_pid=$(pgrep -ofP "$(cat /proc/sys/kernel/core_uses_pid)" /usr/sbin/sshd)
+    [ -n "${sshd_pid}" ] && kill -TERM "${sshd_pid}"
+    rm -f /var/run/sshd.pid
+    rm -f /run/sshd.pid
+    rm -f /var/lock/subsys/sshd
+}
+
 install_openssh(){
     download_openssh
     privsep
@@ -482,12 +492,7 @@ install_openssh(){
     modify_selinux
     generate_host_key
     sshd_init install
-    local sshd_pid
-    sshd_pid=$(pgrep -ofP "$(cat /proc/sys/kernel/core_uses_pid)" /usr/sbin/sshd)
-    [ -n "${sshd_pid}" ] && kill -TERM "${sshd_pid}"
-    rm -f /var/run/sshd.pid
-    rm -f /run/sshd.pid
-    rm -f /var/lock/subsys/sshd
+    kill_sshd_main_process
     sshd_init start && ssh -V && echo "completed" && exit 0
 }
 
