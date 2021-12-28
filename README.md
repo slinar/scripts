@@ -8,7 +8,6 @@ centos 6通用, 如需在其他版本的系统上使用请自行测试修改
 ****
 |文件|描述|
 |---|---
-|python3.8.sh|一键安装openssl-1.1.1g和python-3.8
 |openssh.sh|openssh升级脚本(使用libressl,适用于centos6)
 |openssh_el6_el7_el8.sh|openssh升级脚本(使用openssl,适用于centos6,7,8)
 |nginx.sh|一键安装nginx(可选openssl版本)
