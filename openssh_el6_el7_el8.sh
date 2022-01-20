@@ -219,26 +219,6 @@ SSH_USE_STRONG_RNG=0
 # CRYPTO_POLICY=
 EOF
 
-    if [ "${os_ver}" == 8 ]; then
-        cat > /usr/share/crypto-policies/DEFAULT/opensshserver.txt<<EOF
-CRYPTO_POLICY='-oCiphers=aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr,aes256-cbc,aes128-gcm@openssh.com,aes128-ctr,aes128-cbc -oMACs=hmac-sha2-256-etm@openssh.com,hmac-sha1-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha2-256,hmac-sha1,umac-128@openssh.com,hmac-sha2-512 -oGSSAPIKexAlgorithms=gss-gex-sha1-,gss-group14-sha1- -oKexAlgorithms=curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -oHostKeyAlgorithms=rsa-sha2-256,rsa-sha2-256-cert-v01@openssh.com,ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com,ecdsa-sha2-nistp521,ecdsa-sha2-nistp521-cert-v01@openssh.com,ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,ssh-rsa,ssh-rsa-cert-v01@openssh.com -oPubkeyAcceptedKeyTypes=rsa-sha2-256,rsa-sha2-256-cert-v01@openssh.com,ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com,ecdsa-sha2-nistp521,ecdsa-sha2-nistp521-cert-v01@openssh.com,ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,ssh-rsa,ssh-rsa-cert-v01@openssh.com -oCASignatureAlgorithms=rsa-sha2-256,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,rsa-sha2-512,ecdsa-sha2-nistp521,ssh-ed25519,ssh-rsa'
-EOF
-        chown root:root /usr/share/crypto-policies/DEFAULT/opensshserver.txt
-        chmod 644 /usr/share/crypto-policies/DEFAULT/opensshserver.txt
-        ln -sf /usr/share/crypto-policies/DEFAULT/opensshserver.txt /etc/crypto-policies/back-ends/opensshserver.config
-        cat > /usr/share/crypto-policies/DEFAULT/openssh.txt<<EOF
-Ciphers aes256-gcm@openssh.com,chacha20-poly1305@openssh.com,aes256-ctr,aes256-cbc,aes128-gcm@openssh.com,aes128-ctr,aes128-cbc
-MACs hmac-sha2-256-etm@openssh.com,hmac-sha1-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512-etm@openssh.com,hmac-sha2-256,hmac-sha1,umac-128@openssh.com,hmac-sha2-512
-GSSAPIKexAlgorithms gss-gex-sha1-,gss-group14-sha1-
-KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group-exchange-sha256,diffie-hellman-group14-sha256,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512,diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1
-PubkeyAcceptedKeyTypes rsa-sha2-256,rsa-sha2-256-cert-v01@openssh.com,ecdsa-sha2-nistp256,ecdsa-sha2-nistp256-cert-v01@openssh.com,ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com,ecdsa-sha2-nistp521,ecdsa-sha2-nistp521-cert-v01@openssh.com,ssh-ed25519,ssh-ed25519-cert-v01@openssh.com,ssh-rsa,ssh-rsa-cert-v01@openssh.com
-CASignatureAlgorithms rsa-sha2-256,ecdsa-sha2-nistp256,ecdsa-sha2-nistp384,rsa-sha2-512,ecdsa-sha2-nistp521,ssh-ed25519,ssh-rsa
-EOF
-        chown root:root /usr/share/crypto-policies/DEFAULT/openssh.txt
-        chmod 644 /usr/share/crypto-policies/DEFAULT/openssh.txt
-        ln -sf /usr/share/crypto-policies/DEFAULT/openssh.txt /etc/crypto-policies/back-ends/openssh.config
-    fi
-
     chown root:root /usr/lib/systemd/system/sshd.service
     chmod 644 /usr/lib/systemd/system/sshd.service
     chown root:root /usr/lib/systemd/system/sshd@.service
@@ -391,10 +371,6 @@ sshd_init(){
                     systemctl stop sshd.service && systemctl disable sshd.service
                 fi
                 rm -f /usr/lib/systemd/system/sshd*
-                rm -f /etc/crypto-policies/back-ends/openssh.config
-                rm -f /etc/crypto-policies/back-ends/opensshserver.config
-                rm -f /usr/share/crypto-policies/DEFAULT/openssh.txt
-                rm -f /usr/share/crypto-policies/DEFAULT/opensshserver.txt
                 rm -f /etc/sysconfig/sshd
             fi
             rm -f /etc/ssh/ssh_host_*
@@ -500,6 +476,8 @@ clean_tmp(){
     rm -rf /tmp/zlib-1.2.11
     rm -rf /tmp/${openssl_ver}
     rm -rf /tmp/${openssh_ver}
+    rm -rf /run/log/journal/*
+    systemctl restart systemd-journald
 }
 
 _checkPrivilege
