@@ -156,6 +156,20 @@ clean_tmp(){
     rm -rf /tmp/${curl_ver}
 }
 
+exclude_curl_in_yum(){
+    if ! grep "^exclude=" /etc/yum.conf; then
+        sed -i "\$aexclude=libcurl curl" /etc/yum.conf
+    elif ! grep "^exclude=.*libcurl.*curl"; then
+        local options
+        local options_libcurl
+        local options_curl
+        grep "^exclude=.*libcurl" /etc/yum.conf || options_libcurl="libcurl"
+        grep "^exclude=.*curl" /etc/yum.conf || options_curl="curl"
+        options="$(grep "^exclude=" /etc/yum.conf|awk -F = '{print $2}') ${options_libcurl} ${options_curl}"
+        sed -i "\$aexclude=${options}" /etc/yum.conf
+    fi
+}
+
 echo "-------------------------------------------"
 echo "openssl : ${openssl_ver}"
 echo "nghttp2 : ${nghttp2_ver}"
@@ -178,6 +192,7 @@ case $input in
         build_nghttp2
         install_curl
         install_pycurl
+        exclude_curl_in_yum
         show_curl_ver
         ;;
     *)
