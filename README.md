@@ -8,8 +8,8 @@ centos 6通用, 如需在其他版本的系统上使用请自行测试修改
 ****
 |文件|描述|
 |---|---
-|openssh.sh|openssh升级脚本(使用libressl,适用于centos6)
-|openssh_el6_el7_el8.sh|openssh升级脚本(使用openssl,适用于centos/Rocky Linux)
+|openssh.sh|openssh升级脚本(使用libressl,适用于Centos 6)
+|openssh_el6_el7_el8.sh|openssh升级脚本(使用openssl,适用于Centos/Rocky Linux)
 |nginx.sh|一键安装nginx(可选openssl版本)
 |curl.sh|curl升级脚本(http2&tls1.3)
 |nginx|centos 6上的nginx服务脚本
