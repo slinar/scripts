@@ -15,8 +15,7 @@ centos 6通用, 如需在其他版本的系统上使用请自行测试修改
 |nginx|centos 6上的nginx服务脚本
 
 
-* openssh可以不依赖openssl或libressl编译
+* openssh可以不依赖openssl或libressl编译(Line 13: without_openssl=yes)
 * 为了提高稳定性和减少对现有系统环境的影响，openssh静态链接openssl
-* openssh_el6_el7_el8.sh支持centos 6, centos 7, centos 8
 
 **注意: 使用openssh.sh脚本的时候建议放在screen(或者类似的其他工具)中执行, 防止升级过程中意外断开(理论上不会断开)ssh连接导致脚本执行终止升级失败.**
