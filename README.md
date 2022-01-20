@@ -3,8 +3,8 @@
 
 |文件|描述|适用OS版本|备注|
 |---|---|---|---|
-|openssh_el6.sh|openssh升级脚本|Centos 6|libressl
-|openssh.sh|openssh升级脚本|Centos 6+/Rocky Linux)|openssl
+|openssh_el6.sh|openssh升级脚本|Centos 6|使用libressl库
+|openssh.sh|openssh升级脚本|Centos 6+/Rocky Linux)|使用openssl库
 |nginx.sh|nginx安装脚本|Centos 6
 |curl.sh|curl升级脚本|Centos 6+/Rocky Linux)|为Centos 6/7提供http2&tls1.3支持
 |nginx|nginx服务脚本|Centos 6
