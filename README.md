@@ -1,19 +1,15 @@
-自用的一些一键安装脚本
+一些自用脚本
 ===========================
-centos 6通用, 如需在其他版本的系统上使用请自行测试修改
 
-没啥技术含量, 写的比较烂但是能用, 使用前请确保网络连接正常
+|文件|描述|适用OS版本|备注|
+|---|---|---|---|
+|openssh_el6.sh|openssh升级脚本|Centos 6|libressl
+|openssh.sh|openssh升级脚本|Centos 6+/Rocky Linux)|openssl
+|nginx.sh|nginx安装脚本|Centos 6
+|curl.sh|curl升级脚本|Centos 6+/Rocky Linux)|http2&tls1.3
+|nginx|nginx服务脚本|Centos 6
 
-如有错误, 欢迎反馈!
-****
-|文件|描述|
-|---|---
-|openssh.sh|openssh升级脚本(使用libressl,适用于Centos 6)
-|openssh_el6_el7_el8.sh|openssh升级脚本(使用openssl,适用于Centos/Rocky Linux)
-|nginx.sh|一键安装nginx(可选openssl版本)
-|curl.sh|curl升级脚本(http2&tls1.3)
-|nginx|centos 6上的nginx服务脚本
-
+使用前请确保网络连接正常, 如需在其他版本的系统上使用请自行测试修改, 如果错误欢迎提交Issues
 
 * openssh可以不依赖openssl或libressl编译(Line 13: without_openssl=yes)
 * 为了提高稳定性和减少对现有系统环境的影响，openssh静态链接openssl
