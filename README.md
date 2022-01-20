@@ -6,7 +6,7 @@
 |openssh_el6.sh|openssh升级脚本|Centos 6|libressl
 |openssh.sh|openssh升级脚本|Centos 6+/Rocky Linux)|openssl
 |nginx.sh|nginx安装脚本|Centos 6
-|curl.sh|curl升级脚本|Centos 6+/Rocky Linux)|http2&tls1.3
+|curl.sh|curl升级脚本|Centos 6+/Rocky Linux)|为Centos 6/7提供http2&tls1.3支持
 |nginx|nginx服务脚本|Centos 6
 
 使用前请确保网络连接正常, 如需在其他版本的系统上使用请自行测试修改, 如果错误欢迎提交Issues
