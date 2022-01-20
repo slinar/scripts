@@ -1,7 +1,7 @@
 #!/bin/bash
 openssl_ver="openssl-1.1.1m"
 nghttp2_ver="nghttp2-1.46.0"
-curl_ver="curl-7.80.0"
+curl_ver="curl-7.81.0"
 pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){
@@ -46,7 +46,6 @@ _download(){
                 rm -f "${fileName}"
             fi
             echo "Downloading ${fileName} from ${url}"
-            #wget --continue --timeout=10 --tries=3 --retry-connrefused -O "${fileName}" "${url}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             rm -f "${fileName}"
         fi
@@ -143,7 +142,7 @@ show_curl_ver(){
 }
 
 check_ca(){
-    readlink -fe /etc/pki/tls/certs/ca-bundle.crt || { echo "/etc/pki/tls/certs/ca-bundle.crt not found"; exit 1;}
+    readlink -e /etc/pki/tls/certs/ca-bundle.crt || { echo "/etc/pki/tls/certs/ca-bundle.crt not found"; exit 1;}
 }
 
 clean_tmp(){
