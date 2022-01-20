@@ -159,7 +159,7 @@ clean_tmp(){
 exclude_curl_in_yum(){
     if ! grep "^exclude=" /etc/yum.conf; then
         sed -i "\$aexclude=libcurl curl" /etc/yum.conf
-    elif ! grep "^exclude=.*libcurl.*curl"; then
+    elif ! grep "^exclude=.*libcurl.*curl" /etc/yum.conf; then
         local options
         local options_libcurl
         local options_curl
