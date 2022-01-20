@@ -476,8 +476,10 @@ clean_tmp(){
     rm -rf /tmp/zlib-1.2.11
     rm -rf /tmp/${openssl_ver}
     rm -rf /tmp/${openssh_ver}
-    rm -rf /run/log/journal/*
-    systemctl restart systemd-journald
+    if [[ "${os_ver}" == 7 || "${os_ver}" == 8 ]]; then
+        rm -rf /run/log/journal/*
+        systemctl restart systemd-journald
+    fi
 }
 
 _checkPrivilege
