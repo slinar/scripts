@@ -26,8 +26,8 @@ declare -ra openssh_url=(
 declare -r el6_repo_url="https://pan.0db.org:65000/Centos/CentOS-Base.repo"
 
 declare -a ca_url=(
-    "https://els6.baruwa.com/els6/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
     "https://pan.0db.org:65000/dep/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
+    "https://els6.baruwa.com/els6/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
 )
 
 [[ "${new_config}" =~ yes|no ]] || { echo "The value of new_config is invalid";exit 1;}
