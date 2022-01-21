@@ -183,7 +183,7 @@ case $input in
         _sysVer
         _checkPrivilege
         check_yum
-        yum -y install gcc gcc-c++ perl make python-devel ca-certificates libidn2 libidn2-devel || exit 1
+        yum -y install gcc gcc-c++ perl make python-devel openssl ca-certificates libidn2 libidn2-devel || exit 1
         check_ca
         clean_tmp
         export CFLAGS="-fPIC"
