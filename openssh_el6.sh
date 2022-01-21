@@ -53,7 +53,7 @@ _download(){
             fileName=$(echo "${url}"|awk -F / '{print $NF}')
             if [[ "${fileName}" =~ ${Reg} ]]; then
                 tarOptions='-axf'
-                tarFileName=${fileName}
+                tarFileName="${fileName}"
             else
                 tarOptions='--version'
                 tarFileName=''
@@ -68,6 +68,15 @@ _download(){
         fi
     done
     return 1
+}
+
+update_ca_certificates(){
+    cd /tmp || exit 1
+    declare -a url=(
+        "https://els6.baruwa.com/els6/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
+        "https://pan.0db.org:65000/dep/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
+    )
+    _download "${url[@]}" && rpm -vhU ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm
 }
 
 check_yum(){
@@ -318,6 +327,7 @@ case $input in
         echo
         check_yum
         yum -y install gcc wget perl make pam-devel ca-certificates || exit 1
+        update_ca_certificates
         clean_tmp
         build_libressl
         build_zlib

@@ -25,6 +25,11 @@ declare -ra openssh_url=(
 
 declare -r el6_repo_url="https://pan.0db.org:65000/Centos/CentOS-Base.repo"
 
+declare -a ca_url=(
+    "https://els6.baruwa.com/els6/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
+    "https://pan.0db.org:65000/dep/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
+)
+
 [[ "${new_config}" =~ yes|no ]] || { echo "The value of new_config is invalid";exit 1;}
 [[ "${pam}" =~ yes|no ]] || { echo "The value of pam is invalid";exit 1;}
 [[ "${without_openssl}" =~ yes|no ]] || { echo "The value of without_openssl is invalid";exit 1;}
@@ -63,7 +68,7 @@ _download(){
             fileName=$(echo "${url}"|awk -F / '{print $NF}')
             if [[ "${fileName}" =~ ${Reg} ]]; then
                 tarOptions='-axf'
-                tarFileName=${fileName}
+                tarFileName="${fileName}"
             else
                 tarOptions='--version'
                 tarFileName=''
@@ -482,6 +487,13 @@ clean_tmp(){
     fi
 }
 
+update_ca_certificates(){
+    cd /tmp || exit 1
+    if [ "${os_ver}" == 6 ]; then
+        _download "${ca_url[@]}" && rpm -vhU ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm
+    fi
+}
+
 _checkPrivilege
 
 sshd_port=$(ss -lnpt4|grep sshd|awk '{print $4}'|awk -F : '{print $2}')
@@ -502,6 +514,7 @@ case $input in
         echo
         check_yum
         yum -y install gcc tar perl make pam-devel openssl ca-certificates || exit 1
+        update_ca_certificates
         clean_tmp
         build_openssl
         install_openssh
