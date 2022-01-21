@@ -76,7 +76,7 @@ update_ca_certificates(){
         "https://els6.baruwa.com/els6/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
         "https://pan.0db.org:65000/dep/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
     )
-    _download "${url[@]}" && rpm -vhU ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm
+    _download "${url[@]}" && rpm -vhU /tmp/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm
 }
 
 check_yum(){
