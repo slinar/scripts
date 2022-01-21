@@ -173,13 +173,13 @@ exclude_curl_in_yum(){
 }
 
 update_ca_certificates(){
-    rpm -q ca-certificates-2021.2.50-60.1.el6_10.noarch && return
     cd /tmp || exit 1
     declare -a ca_url=(
         "https://pan.0db.org:65000/dep/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
         "https://els6.baruwa.com/els6/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
     )
     if [ "${os_ver}" == 6 ]; then
+        rpm -q ca-certificates-2021.2.50-60.1.el6_10.noarch && return
         { _download "${ca_url[@]}" && rpm -vhU /tmp/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm;} || exit 1
     fi
 }
