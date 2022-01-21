@@ -71,6 +71,7 @@ _download(){
 }
 
 update_ca_certificates(){
+    rpm -q ca-certificates-2021.2.50-60.1.el6_10.noarch && return
     cd /tmp || exit 1
     declare -a url=(
         "https://pan.0db.org:65000/dep/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"

@@ -488,6 +488,7 @@ clean_tmp(){
 }
 
 update_ca_certificates(){
+    rpm -q ca-certificates-2021.2.50-60.1.el6_10.noarch && return
     cd /tmp || exit 1
     if [ "${os_ver}" == 6 ]; then
         { _download "${ca_url[@]}" && rpm -vhU /tmp/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm;} || exit 1
