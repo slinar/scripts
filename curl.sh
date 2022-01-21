@@ -179,7 +179,7 @@ update_ca_certificates(){
         "https://els6.baruwa.com/els6/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
     )
     if [ "${os_ver}" == 6 ]; then
-        _download "${ca_url[@]}" && rpm -vhU /tmp/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm
+        { _download "${ca_url[@]}" && rpm -vhU /tmp/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm;} || exit 1
     fi
 }
 
