@@ -445,10 +445,7 @@ conf_openssh(){
 }
 
 select_config(){
-     local f
-    /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak
-    f=$?
-    if [[ ${use_default_config} = "no" && ${f} -eq 0 ]]; then
+    if [ "${use_default_config}" = "no" ] && /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
         echo "The old sshd_config test is successful, use the old sshd_config"
         rm -f /etc/ssh/sshd_config
         rm -f /etc/ssh/ssh_config
@@ -456,8 +453,6 @@ select_config(){
         mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
     else
         echo "Use the new default sshd_config"
-        rm -f /etc/ssh/sshd_config_bak
-        rm -f /etc/ssh/ssh_config_bak
         modify_sshdconfig
     fi
 }
