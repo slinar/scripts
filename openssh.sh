@@ -4,7 +4,7 @@ openssh_ver="openssh-8.8p1"
 openssl_ver="openssl-1.1.1m"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
-new_config=yes
+use_default_config=yes
 
 # Enables PAM support
 pam=no
@@ -31,7 +31,7 @@ declare -a ca_url=(
     "https://els6.baruwa.com/els6/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
 )
 
-[[ "${new_config}" =~ yes|no ]] || { echo "The value of new_config is invalid";exit 1;}
+[[ "${use_default_config}" =~ yes|no ]] || { echo "The value of use_default_config is invalid";exit 1;}
 [[ "${pam}" =~ yes|no ]] || { echo "The value of pam is invalid";exit 1;}
 [[ "${without_openssl}" =~ yes|no ]] || { echo "The value of without_openssl is invalid";exit 1;}
 
@@ -46,7 +46,7 @@ _sysVer(){
     local vv
     v=$(uname -r|awk -F . '{print $(NF-1)}')
     vv=${v:2:1}
-    if [[ "${vv}" == 8 || "${vv}" == 7 || "${vv}" == 6 ]]; then
+    if [[ ${vv} = "8" || ${vv} = "7" || ${vv} = "6" ]]; then
         echo -n "${v:2:1}"
         return
     fi
@@ -96,7 +96,7 @@ check_yum(){
 }
 
 build_openssl(){
-    [ ${without_openssl} == yes ] && return
+    [ "${without_openssl}" = yes ] && return
     cd /tmp || exit 1
     { _download "${openssl_url[@]}" && tar -zxf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
     ./config --prefix=/tmp/${openssh_ver}/openssl --openssldir=/tmp/${openssh_ver}/openssl/ssl -fPIC no-shared no-threads \
@@ -130,7 +130,7 @@ modify_firewalld(){
 }
 
 modify_fw(){
-    if [ "${os_ver}" == 6 ]; then
+    if [ "${os_ver}" = 6 ]; then
         echo "modify_iptables(el6)"
         modify_iptables
     elif systemctl status firewalld.service --no-pager --full; then
@@ -320,12 +320,12 @@ EOF
 }
 
 modify_sshd_pam(){
-    [ ${pam} == no ] && rm -f /etc/pam.d/sshd && return
-    if [ "${os_ver}" == 6 ]; then
+    [ "${pam}" = no ] && rm -f /etc/pam.d/sshd && return
+    if [ "${os_ver}" = 6 ]; then
         modify_sshd_pam_6
-    elif [ "${os_ver}" == 7 ];then
+    elif [ "${os_ver}" = 7 ];then
         modify_sshd_pam_7
-    elif [ "${os_ver}" == 8 ];then
+    elif [ "${os_ver}" = 8 ];then
         modify_sshd_pam_8
     fi
     chown root:root /etc/pam.d/sshd
@@ -336,7 +336,7 @@ modify_sshdconfig(){
     sed -i 's/#Port 22/Port '"${sshd_port}"'/' /etc/ssh/sshd_config
     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
     sed -i 's/#UseDNS no/UseDNS no/' /etc/ssh/sshd_config
-    [ ${pam} == yes ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config
+    [ "${pam}" = yes ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config
     sed -i 's/#TCPKeepAlive yes/TCPKeepAlive yes/' /etc/ssh/sshd_config
     sed -i 's/#ClientAliveInterval 0/ClientAliveInterval 60/' /etc/ssh/sshd_config
 }
@@ -356,7 +356,7 @@ generate_host_key(){
 sshd_init(){
     case "$1" in
         "install")
-            if [ "${os_ver}" == 6 ]; then
+            if [ "${os_ver}" = 6 ]; then
                 cp -f /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
                 chkconfig --add sshd
                 chkconfig sshd on
@@ -369,7 +369,7 @@ sshd_init(){
             fi
             ;;
         "uninstall")
-            if [ "${os_ver}" == 6 ]; then
+            if [ "${os_ver}" = 6 ]; then
                 chkconfig --del sshd > /dev/null 2>&1
                 rm -f /etc/rc.d/init.d/sshd
             else
@@ -384,21 +384,21 @@ sshd_init(){
             rm -rf /var/empty/sshd
             ;;
         "status")
-            if [ "${os_ver}" == 6 ]; then
+            if [ "${os_ver}" = 6 ]; then
                 service sshd status
             else
                 systemctl status sshd.service --no-pager --full
             fi
             ;;
         "start")
-            if [ "${os_ver}" == 6 ]; then
+            if [ "${os_ver}" = 6 ]; then
                 service sshd start
             else
                 systemctl start sshd.service
             fi
             ;;
         "stop")
-            if [ "${os_ver}" == 6 ]; then
+            if [ "${os_ver}" = 6 ]; then
                 service sshd stop
             else
                 systemctl stop sshd.service
@@ -434,41 +434,43 @@ kill_sshd_main_process(){
     rm -f /var/lock/subsys/sshd
 }
 
-install_openssh(){
-    download_openssh
-    privsep
+conf_openssh(){
     local pam_option
     local openssl_option
-    [ ${pam} == yes ] && pam_option='--with-pam'
-    [ ${without_openssl} == yes ] && openssl_option='--without-openssl'
-    [ ${without_openssl} == no ] && openssl_option="--with-ssl-dir=/tmp/${openssh_ver}/openssl"
+    [ "${pam}" = yes ] && pam_option='--with-pam'
+    [ "${without_openssl}" = yes ] && openssl_option='--without-openssl'
+    [ "${without_openssl}" = no ] && openssl_option="--with-ssl-dir=/tmp/${openssh_ver}/openssl"
     ./configure --prefix=/usr --sysconfdir=/etc/ssh ${openssl_option} ${pam_option} --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd --without-zlib --with-pie \
     || { echo "Failed to configure openssh";exit 1;}
-    make || { echo "Failed to make openssh";exit 1;}
-    trap "" 2
-    uninstall_old_openssh
-    make install
-    if [ ${new_config} == no ]; then
-        [ ${pam} == no ] && sed -i 's/^\s*UsePAM\s\+yes\s*/#UsePAM no/' /etc/ssh/sshd_config >/dev/null 2>&1
-        [ ${pam} == yes ] && sed -i 's/\s*.*UsePAM\s\+no\s*/UsePAM yes/' /etc/ssh/sshd_config >/dev/null 2>&1
-        if /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
-            echo "The old sshd_config test is successful, use the old sshd_config"
-            rm -f /etc/ssh/sshd_config
-            rm -f /etc/ssh/ssh_config
-            mv -f /etc/ssh/sshd_config_bak /etc/ssh/sshd_config
-            mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
-        else
-            echo "The old sshd_config test failed, use the new default sshd_config"
-            rm -f /etc/ssh/sshd_config_bak
-            rm -f /etc/ssh/ssh_config_bak
-            modify_sshdconfig
-        fi
-    elif [ ${new_config} == yes ]; then
+}
+
+select_config(){
+     local f
+    /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak
+    f=$?
+    if [[ ${use_default_config} = "no" && ${f} -eq 0 ]]; then
+        echo "The old sshd_config test is successful, use the old sshd_config"
+        rm -f /etc/ssh/sshd_config
+        rm -f /etc/ssh/ssh_config
+        mv -f /etc/ssh/sshd_config_bak /etc/ssh/sshd_config
+        mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
+    else
         echo "Use the new default sshd_config"
         rm -f /etc/ssh/sshd_config_bak
         rm -f /etc/ssh/ssh_config_bak
         modify_sshdconfig
     fi
+}
+
+install_openssh(){
+    download_openssh
+    privsep
+    conf_openssh
+    make || { echo "Failed to make openssh";exit 1;}
+    trap "" 2
+    uninstall_old_openssh
+    make install
+    select_config
     modify_fw
     modify_sshd_pam
     modify_selinux
@@ -482,7 +484,7 @@ clean_tmp(){
     rm -rf /tmp/zlib-1.2.11
     rm -rf /tmp/${openssl_ver}
     rm -rf /tmp/${openssh_ver}
-    if [[ "${os_ver}" == 7 || "${os_ver}" == 8 ]]; then
+    if [[ ${os_ver} = "7" || ${os_ver} = "8" ]]; then
         rm -rf /run/log/journal/*
         systemctl restart systemd-journald
     fi
@@ -493,7 +495,7 @@ check_ca_rpm_hash(){
     local v
     sha256='20a5c2f415a8c873bb759aefa721446452761627789927d997c305472a959c35'
     v=$(sha256sum /tmp/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm|awk '{print $1}')
-    if [ ${sha256} == "${v}" ]; then
+    if [ "${sha256}" = "${v}" ]; then
         return 0
     else
         echo "sha256 error: ${v}"
@@ -506,7 +508,7 @@ check_ca_file_hash(){
     local v
     sha256='3dd27fe1e3d46880e8579ef979c98014a4bb24ddac1fd4321da7f611bea41ec7'
     v=$(sha256sum "$(readlink -e /etc/pki/tls/certs/ca-bundle.crt)"|awk '{print $1}')
-    if [ ${sha256} == "${v}" ]; then
+    if [ "${sha256}" = "${v}" ]; then
         return 0
     else
         return 1
@@ -515,7 +517,7 @@ check_ca_file_hash(){
 
 update_ca_certificates(){
     cd /tmp || exit 1
-    if [ "${os_ver}" == 6 ]; then
+    if [ "${os_ver}" = 6 ]; then
         rpm -q ca-certificates-2021.2.50-60.1.el6_10.noarch && return
         check_ca_file_hash && return
         { _download "${ca_url[@]}" && check_ca_rpm_hash && rpm -vhU /tmp/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm;} || exit 1
@@ -527,14 +529,14 @@ _checkPrivilege
 sshd_port=$(ss -lnpt4|grep sshd|awk '{print $4}'|awk -F : '{print $2}')
 [ -z "${sshd_port}" ] && sshd_port="22"
 echo "-------------------------------------------"
-echo "openssl         : ${openssl_ver}"
-echo "openssh         : ${openssh_ver}"
-echo "sshd_port       : ${sshd_port}"
-echo "pam             : ${pam}"
-echo "new_config      : ${new_config}"
-echo "without_openssl : ${without_openssl}"
-echo "Backup     : /etc/pam.d/sshd /etc/pam.d/sshd_bak"
-[ ${without_openssl} == yes ] && echo "[Warning] Your ssh client(SecureCRT >= 8.5.2) must support the following key exchange algorithms:" && printf "\tcurve25519-sha256\n\tcurve25519-sha256@libssh.org\n"
+echo "openssl            : ${openssl_ver}"
+echo "openssh            : ${openssh_ver}"
+echo "sshd_port          : ${sshd_port}"
+echo "pam                : ${pam}"
+echo "use_default_config : ${use_default_config}"
+echo "without_openssl    : ${without_openssl}"
+echo "Backup             : /etc/pam.d/sshd /etc/pam.d/sshd_bak"
+[ "${without_openssl}" = yes ] && echo "[Warning] Your ssh client(SecureCRT >= 8.5.2) must support the following key exchange algorithms:" && printf "\tcurve25519-sha256\n\tcurve25519-sha256@libssh.org\n"
 echo "-------------------------------------------"
 read -r -n 1 -p "Please confirm the above information. Are you sure you want to continue? [y/n]" input
 case $input in
