@@ -1,7 +1,7 @@
 #!/bin/bash
 
-openssh_ver="openssh-8.8p1"
-openssl_ver="openssl-1.1.1m"
+openssh_ver="openssh-8.9p1"
+openssl_ver="openssl-1.1.1n"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 use_default_config=yes
@@ -44,10 +44,10 @@ _checkPrivilege(){
 _sysVer(){
     local v
     local vv
-    v=$(uname -r|awk -F . '{print $(NF-1)}')
-    vv=${v:2:1}
+    v=$(uname -r|awk -F "el" '{print $2}')
+    vv=${v:0:1}
     if [[ ${vv} = "8" || ${vv} = "7" || ${vv} = "6" ]]; then
-        echo -n "${v:2:1}"
+        echo -n "${vv}"
         return
     fi
     exit 2
@@ -445,7 +445,7 @@ conf_openssh(){
 }
 
 select_config(){
-    if [ "${use_default_config}" = "no" ] && /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
+    if [ "${use_default_config}" = no ] && /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
         echo "The old sshd_config test is successful, use the old sshd_config"
         rm -f /etc/ssh/sshd_config
         rm -f /etc/ssh/ssh_config
@@ -519,9 +519,14 @@ update_ca_certificates(){
     fi
 }
 
+test_curl(){
+    echo "Test url : https://1.1.1.1/"
+    curl -sI https://1.1.1.1/ >/dev/null || { curl -I https://1.1.1.1/; echo "curl is not available"; exit 1;}
+}
+
 _checkPrivilege
 
-sshd_port=$(ss -lnpt4|grep sshd|awk '{print $4}'|awk -F : '{print $2}')
+sshd_port=$(ss -lnpt4|grep sshd|awk '{print $4}'|awk -F : '{print $2}'|head -1)
 [ -z "${sshd_port}" ] && sshd_port="22"
 echo "-------------------------------------------"
 echo "openssl            : ${openssl_ver}"
@@ -539,6 +544,7 @@ case $input in
         echo
         check_yum
         yum -y install gcc tar perl make pam-devel openssl ca-certificates || exit 1
+        test_curl
         update_ca_certificates
         clean_tmp
         build_openssl
