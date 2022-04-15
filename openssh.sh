@@ -1,6 +1,6 @@
 #!/bin/bash
 
-openssh_ver="openssh-8.9p1"
+openssh_ver="openssh-9.0p1"
 openssl_ver="openssl-1.1.1n"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
@@ -520,8 +520,8 @@ update_ca_certificates(){
 }
 
 test_curl(){
-    echo "Test url : https://1.1.1.1/"
-    curl -sI https://1.1.1.1/ >/dev/null || { curl -I https://1.1.1.1/; echo "curl is not available"; exit 1;}
+    echo "Test url : https://1.0.0.1/"
+    curl -sI https://1.0.0.1/ >/dev/null || { curl -I https://1.0.0.1/; echo "curl is not available"; exit 1;}
 }
 
 _checkPrivilege
