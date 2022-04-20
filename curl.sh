@@ -13,10 +13,10 @@ _checkPrivilege(){
 _sysVer(){
     local v
     local vv
-    v=$(uname -r|awk -F . '{print $(NF-1)}')
-    vv=${v:2:1}
-    if [[ "${vv}" == 8 || "${vv}" == 7 || "${vv}" == 6 ]]; then
-        echo -n "${v:2:1}"
+    v=$(uname -r|awk -F "el" '{print $2}')
+    vv=${v:0:1}
+    if [[ ${vv} = "8" || ${vv} = "7" || ${vv} = "6" ]]; then
+        echo -n "${vv}"
         return
     fi
     exit 2
