@@ -1,7 +1,7 @@
 #!/bin/bash
-openssl_ver="openssl-1.1.1n"
+openssl_ver="openssl-1.1.1o"
 nghttp2_ver="nghttp2-1.47.0"
-curl_ver="curl-7.82.0"
+curl_ver="curl-7.83.1"
 pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){
@@ -31,7 +31,6 @@ _download(){
     local tarOptions
     declare -r urlReg='^(http|https|ftp)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
     declare -r Reg='(\.tar\.gz|\.tgz|\.tar\.bz2|\.tar\.xz)$'
-    [ ! -x /usr/bin/tar ] && yum -y install tar
     [ ! -x /usr/bin/xz ] && yum -y install xz
     for url in "$@"; do
         if [[ ${url} =~ ${urlReg} ]]; then

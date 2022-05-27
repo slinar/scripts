@@ -1,7 +1,7 @@
 #!/bin/bash
 
 openssh_ver="openssh-9.0p1"
-openssl_ver="openssl-1.1.1n"
+openssl_ver="openssl-1.1.1o"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 use_default_config=yes
@@ -62,7 +62,6 @@ _download(){
     local tarOptions
     declare -r urlReg='^(http|https|ftp)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
     declare -r Reg='(\.tar\.gz|\.tgz|\.tar\.bz2|\.tar\.xz)$'
-    [ ! -x /usr/bin/tar ] && yum -y install tar
     [ ! -x /usr/bin/xz ] && yum -y install xz
     for url in "$@"; do
         if [[ ${url} =~ ${urlReg} ]]; then
@@ -99,7 +98,7 @@ build_openssl(){
     [ "${without_openssl}" = yes ] && return
     cd /tmp || exit 1
     { _download "${openssl_url[@]}" && tar -zxf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
-    ./config --prefix=/tmp/${openssh_ver}/openssl --openssldir=/tmp/${openssh_ver}/openssl/ssl -fPIC no-shared no-threads \
+    ./config --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl -fPIC no-shared no-threads \
     || { echo "Failed to config openssl";exit 1;}
     make && make install_sw && return
     exit 1
@@ -439,7 +438,7 @@ conf_openssh(){
     local openssl_option
     [ "${pam}" = yes ] && pam_option='--with-pam'
     [ "${without_openssl}" = yes ] && openssl_option='--without-openssl'
-    [ "${without_openssl}" = no ] && openssl_option="--with-ssl-dir=/tmp/${openssh_ver}/openssl"
+    [ "${without_openssl}" = no ] && openssl_option="--with-ssl-dir=/tmp/openssl-static"
     ./configure --prefix=/usr --sysconfdir=/etc/ssh ${openssl_option} ${pam_option} --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd --without-zlib --with-pie \
     || { echo "Failed to configure openssh";exit 1;}
 }
@@ -476,9 +475,9 @@ install_openssh(){
 }
 
 clean_tmp(){
-    rm -rf /tmp/zlib-1.2.11
     rm -rf /tmp/${openssl_ver}
     rm -rf /tmp/${openssh_ver}
+    rm -rf /tmp/openssl-static
     if [[ ${os_ver} = "7" || ${os_ver} = "8" ]]; then
         rm -rf /run/log/journal/*
         systemctl restart systemd-journald
@@ -524,10 +523,14 @@ test_curl(){
     curl -sI https://1.0.0.1/ >/dev/null || { curl -I https://1.0.0.1/; echo "curl is not available"; exit 1;}
 }
 
-_checkPrivilege
+get_current_sshd_port(){
+    sshd_port=$(ss -lnpt4|grep sshd|awk '{print $4}'|awk -F : '{print $2}'|head -1)
+    [ -z "${sshd_port}" ] && sshd_port="22"
+}
 
-sshd_port=$(ss -lnpt4|grep sshd|awk '{print $4}'|awk -F : '{print $2}'|head -1)
-[ -z "${sshd_port}" ] && sshd_port="22"
+_checkPrivilege
+get_current_sshd_port
+
 echo "-------------------------------------------"
 echo "openssl            : ${openssl_ver}"
 echo "openssh            : ${openssh_ver}"
