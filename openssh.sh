@@ -1,7 +1,7 @@
 #!/bin/bash
 
 openssh_ver="openssh-9.0p1"
-openssl_ver="openssl-1.1.1o"
+openssl_ver="openssl-1.1.1q"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 use_default_config=yes
@@ -352,6 +352,11 @@ generate_host_key(){
     [ ! -f /etc/ssh/ssh_host_ecdsa_key.pub ] && touch /etc/ssh/ssh_host_ecdsa_key.pub
 }
 
+modify_ssh_file_permission(){
+    chown root:root -R /etc/ssh
+    chmod 600 /etc/ssh/ssh_host_*_key
+}
+
 sshd_init(){
     case "$1" in
         "install")
@@ -469,6 +474,7 @@ install_openssh(){
     modify_sshd_pam
     modify_selinux
     generate_host_key
+    modify_ssh_file_permission
     sshd_init install
     kill_sshd_main_process
     sshd_init start && ssh -V && echo "completed" && exit 0
