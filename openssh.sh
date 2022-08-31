@@ -153,6 +153,7 @@ Wants=sshd-keygen.target
 Type=simple
 EnvironmentFile=-/etc/crypto-policies/back-ends/opensshserver.config
 EnvironmentFile=-/etc/sysconfig/sshd
+ExecStartPre=/usr/bin/ssh-keygen -A
 ExecStartPre=/usr/sbin/sshd -t
 ExecStart=/usr/sbin/sshd -D
 ExecReload=/bin/kill -HUP $MAINPID
@@ -347,9 +348,6 @@ modify_selinux(){
 
 generate_host_key(){
     /usr/bin/ssh-keygen -A
-    [ ! -f /etc/ssh/ssh_host_rsa_key.pub ] && touch /etc/ssh/ssh_host_rsa_key.pub
-    [ ! -f /etc/ssh/ssh_host_dsa_key.pub ] && touch /etc/ssh/ssh_host_dsa_key.pub
-    [ ! -f /etc/ssh/ssh_host_ecdsa_key.pub ] && touch /etc/ssh/ssh_host_ecdsa_key.pub
 }
 
 modify_ssh_file_permission(){
@@ -418,9 +416,7 @@ uninstall_old_openssh(){
     cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak > /dev/null 2>&1
     mv -f /etc/ssh/ssh_config /etc/ssh/ssh_config_bak > /dev/null 2>&1
     mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak > /dev/null 2>&1
-    rpm -e --test openssh-clients > /dev/null 2>&1 && yum -y remove openssh-clients
     yum -y remove openssh-server > /dev/null 2>&1
-    rpm -e --test openssh > /dev/null 2>&1 && yum -y remove openssh
     sshd_init uninstall
 }
 
