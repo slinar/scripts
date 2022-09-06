@@ -146,8 +146,7 @@ systemd_sshd(){
 [Unit]
 Description=OpenSSH server daemon
 Documentation=man:sshd(8) man:sshd_config(5)
-After=network.target sshd-keygen.target
-Wants=sshd-keygen.target
+After=network.target
 
 [Service]
 Type=simple
@@ -165,56 +164,6 @@ RestartSec=42s
 WantedBy=multi-user.target
 EOF
 
-    cat > /usr/lib/systemd/system/sshd@.service<<"EOF"
-[Unit]
-Description=OpenSSH per-connection server daemon
-Documentation=man:sshd(8) man:sshd_config(5)
-Wants=sshd-keygen.target
-After=sshd-keygen.target
-
-[Service]
-EnvironmentFile=-/etc/crypto-policies/back-ends/opensshserver.config
-EnvironmentFile=-/etc/sysconfig/sshd
-ExecStart=-/usr/sbin/sshd -i $OPTIONS $CRYPTO_POLICY
-StandardInput=socket
-EOF
-
-    cat > /usr/lib/systemd/system/sshd.socket<<EOF
-[Unit]
-Description=OpenSSH Server Socket
-Documentation=man:sshd(8) man:sshd_config(5)
-Conflicts=sshd.service
-
-[Socket]
-ListenStream=22
-Accept=yes
-
-[Install]
-WantedBy=sockets.target
-EOF
-
-    cat > /usr/lib/systemd/system/sshd-keygen.target<<EOF
-[Unit]
-Wants=sshd-keygen@rsa.service
-Wants=sshd-keygen@ecdsa.service
-Wants=sshd-keygen@ed25519.service
-PartOf=sshd.service
-EOF
-
-    cat > /usr/lib/systemd/system/sshd-keygen@.service<<EOF
-[Unit]
-Description=OpenSSH %i Server Key Generation
-ConditionFileNotEmpty=|!/etc/ssh/ssh_host_%i_key
-
-[Service]
-Type=oneshot
-EnvironmentFile=-/etc/sysconfig/sshd
-ExecStart=/usr/libexec/openssh/sshd-keygen %i
-
-[Install]
-WantedBy=sshd-keygen.target
-EOF
-
     cat > /etc/sysconfig/sshd<<EOF
 # Do not change this option unless you have hardware random
 # generator and you REALLY know what you are doing
@@ -225,16 +174,8 @@ SSH_USE_STRONG_RNG=0
 # CRYPTO_POLICY=
 EOF
 
-    chown root:root /usr/lib/systemd/system/sshd.service
-    chmod 644 /usr/lib/systemd/system/sshd.service
-    chown root:root /usr/lib/systemd/system/sshd@.service
-    chmod 644 /usr/lib/systemd/system/sshd@.service
-    chown root:root /usr/lib/systemd/system/sshd.socket
-    chmod 644 /usr/lib/systemd/system/sshd.socket
-    chown root:root /usr/lib/systemd/system/sshd-keygen.target
-    chmod 644 /usr/lib/systemd/system/sshd-keygen.target
-    chown root:root /usr/lib/systemd/system/sshd-keygen@.service
-    chmod 644 /usr/lib/systemd/system/sshd-keygen@.service
+    chown root:root /usr/lib/systemd/system/sshd*
+    chmod 644 /usr/lib/systemd/system/sshd*
 }
 
 privsep(){
@@ -416,7 +357,7 @@ uninstall_old_openssh(){
     cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak > /dev/null 2>&1
     mv -f /etc/ssh/ssh_config /etc/ssh/ssh_config_bak > /dev/null 2>&1
     mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak > /dev/null 2>&1
-    yum -y remove openssh-server > /dev/null 2>&1
+    rpm -e openssh-server
     sshd_init uninstall
 }
 
@@ -447,8 +388,8 @@ conf_openssh(){
 select_config(){
     if [ "${use_default_config}" = no ] && /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
         echo "The old sshd_config test is successful, use the old sshd_config"
-        rm -f /etc/ssh/sshd_config
-        rm -f /etc/ssh/ssh_config
+        [ -f /etc/ssh/sshd_config_bak ] && rm -f /etc/ssh/sshd_config
+        [ -f /etc/ssh/ssh_config_bak ] && rm -f /etc/ssh/ssh_config
         mv -f /etc/ssh/sshd_config_bak /etc/ssh/sshd_config
         mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
     else
