@@ -1,12 +1,12 @@
 #!/bin/bash
-openssl_ver="openssl-1.1.1o"
-nghttp2_ver="nghttp2-1.47.0"
-curl_ver="curl-7.83.1"
+openssl_ver="openssl-1.1.1q"
+nghttp2_ver="nghttp2-1.49.0"
+curl_ver="curl-7.84.0"
 pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){
-    touch /etc/checkPrivilege >/dev/null 2>&1 && rm -f /etc/checkPrivilege && return 0
-    echo "require root privileges"
+    test "$(id -u)" -eq 0 && return
+    echo "Require root privileges"
     exit 1
 }
 
@@ -47,7 +47,7 @@ _download(){
                 rm -f "${fileName}"
             fi
             echo "Downloading ${fileName} from ${url}"
-            curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            curl --continue-at - --speed-limit 20480 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             rm -f "${fileName}"
         fi
     done
@@ -199,9 +199,8 @@ check_ca_file_hash(){
 update_ca_certificates(){
     cd /tmp || exit 1
     declare -a ca_url=(
+        "http://dl.marmotte.net/rpms/redhat/el6/x86_64/ca-certificates-2021.2.50-65.1.ex1.el6_10/ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch.rpm"
         "https://pan.0db.org:65000/dep/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
-        "https://github.com/slinar/scripts/raw/master/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
-        "https://els6.baruwa.com/els6/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
     )
     if [ "${os_ver}" == 6 ]; then
         rpm -q ca-certificates-2021.2.50-60.1.el6_10.noarch && return

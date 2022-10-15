@@ -1,7 +1,7 @@
 #!/bin/bash
 
-openssh_ver="openssh-9.0p1"
-openssl_ver="openssl-1.1.1q"
+openssh_ver="openssh-9.1p1"
+openssl_ver="openssl-1.1.1r"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 use_default_config=yes
@@ -16,14 +16,14 @@ without_openssl=no
 declare -ra openssl_url=(
     "https://www.openssl.org/source/${openssl_ver}.tar.gz"
     "https://pan.0db.org:65000/dep/${openssl_ver}.tar.gz"
+    "https://artfiles.org/openssl.org/source/${openssl_ver}.tar.gz"
 )
 
 declare -ra openssh_url=(
     "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
-    "https://pan.0db.org:65000/dep/${openssh_ver}.tar.gz"
+    "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
+    "https://ftp.riken.jp/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
 )
-
-declare -r el6_repo_url="https://pan.0db.org:65000/Centos/CentOS-Base.repo"
 
 declare -a ca_url=(
     "https://pan.0db.org:65000/dep/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
@@ -36,8 +36,8 @@ declare -a ca_url=(
 [[ "${without_openssl}" =~ yes|no ]] || { echo "The value of without_openssl is invalid";exit 1;}
 
 _checkPrivilege(){
-    touch /etc/checkPrivilege >/dev/null 2>&1 && rm -f /etc/checkPrivilege && return 0
-    echo "require root privileges"
+    test "$(id -u)" -eq 0 && return
+    echo "Require root privileges"
     exit 1
 }
 
@@ -78,18 +78,75 @@ _download(){
                 rm -f "${fileName}"
             fi
             echo "Downloading ${fileName} from ${url}"
-            curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            curl --continue-at - --speed-limit 20480 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             rm -f "${fileName}"
         fi
     done
     return 1
 }
 
+write_CentOS_Base(){
+    cat > /etc/yum.repos.d/CentOS-Base.repo<<"EOF"
+# CentOS-Base.repo
+#
+# The mirror system uses the connecting IP address of the client and the
+# update status of each mirror to pick mirrors that are updated to and
+# geographically close to the client.  You should use this for CentOS updates
+# unless you are manually picking other mirrors.
+#
+# If the mirrorlist= does not work for you, as a fall back you can try the 
+# remarked out baseurl= line instead.
+#
+#
+
+[base]
+name=CentOS-$releasever - Base
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=os&infra=$infra
+baseurl=https://vault.centos.org/6.10/os/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+
+#released updates 
+[updates]
+name=CentOS-$releasever - Updates
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=updates&infra=$infra
+baseurl=https://vault.centos.org/6.10/updates/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+
+#additional packages that may be useful
+[extras]
+name=CentOS-$releasever - Extras
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=extras&infra=$infra
+baseurl=https://vault.centos.org/6.10/extras/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+
+#additional packages that extend functionality of existing packages
+[centosplus]
+name=CentOS-$releasever - Plus
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=centosplus&infra=$infra
+baseurl=https://vault.centos.org/6.10/centosplus/$basearch/
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+
+#contrib - packages by Centos Users
+[contrib]
+name=CentOS-$releasever - Contrib
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=contrib&infra=$infra
+baseurl=https://vault.centos.org/6.10/contrib/$basearch/
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+EOF
+}
+
 check_yum(){
     [ "${os_ver}" != 6 ] && return
     [ -f /etc/yum.repos.d/CentOS-Base.repo ] && yum makecache && return
     mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
-    curl --silent -L ${el6_repo_url} -o /etc/yum.repos.d/CentOS-Base.repo || { echo "CentOS-Base.repo download failed"; exit 3;}
+    write_CentOS_Base
     yum clean all && yum makecache && return
     exit 1
 }
@@ -388,10 +445,8 @@ conf_openssh(){
 select_config(){
     if [ "${use_default_config}" = no ] && /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
         echo "The old sshd_config test is successful, use the old sshd_config"
-        [ -f /etc/ssh/sshd_config_bak ] && rm -f /etc/ssh/sshd_config
-        [ -f /etc/ssh/ssh_config_bak ] && rm -f /etc/ssh/ssh_config
-        mv -f /etc/ssh/sshd_config_bak /etc/ssh/sshd_config
-        mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
+        [ -f /etc/ssh/sshd_config_bak ] && mv -f /etc/ssh/sshd_config_bak /etc/ssh/sshd_config
+        [ -f /etc/ssh/ssh_config_bak ] && mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
     else
         echo "Use the new default sshd_config"
         modify_sshdconfig
