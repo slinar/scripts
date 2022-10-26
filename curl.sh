@@ -1,5 +1,5 @@
 #!/bin/bash
-openssl_ver="openssl-1.1.1r"
+openssl_ver="openssl-1.1.1q"
 nghttp2_ver="nghttp2-1.50.0"
 curl_ver="curl-7.85.0"
 pycurl_ver="REL_7_43_0_5"
