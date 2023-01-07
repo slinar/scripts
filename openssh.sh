@@ -1,7 +1,7 @@
 #!/bin/bash
 
 openssh_ver="openssh-9.1p1"
-openssl_ver="openssl-1.1.1q"
+openssl_ver="openssl-1.1.1s"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 use_default_config=yes
