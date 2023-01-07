@@ -1,21 +1,23 @@
 #!/bin/bash
-openssl_ver="openssl-1.1.1r"
-nginx_ver="nginx-1.22.0"
+openssl_ver="openssl-1.1.1s"
+nginx_ver="nginx-1.22.1"
 fancyindex_ver="ngx-fancyindex-0.5.2"
-pcre2_ver="pcre2-10.40"
+pcre2_ver="pcre2-10.42"
 
+# Generic download function, the parameter is an array of URLs, download to the current directory
 _download(){
     local url
     local fileName
     local tarFileName
     local tarOptions
     declare -r urlReg='^(http|https|ftp)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
-    declare -r Reg='(\.tar\.gz|\.tgz|\.tar\.bz2|\.tar\.xz)$'
+    declare -r fileNameReg='(\.tar\.gz|\.tgz|\.tar\.bz2|\.tar\.xz)$'
     [ ! -x /usr/bin/xz ] && yum -y install xz
+    [ ! -x /usr/bin/tar ] && yum -y install tar
     for url in "$@"; do
         if [[ ${url} =~ ${urlReg} ]]; then
             fileName=$(echo "${url}"|awk -F / '{print $NF}')
-            if [[ "${fileName}" =~ ${Reg} ]]; then
+            if [[ "${fileName}" =~ ${fileNameReg} ]]; then
                 tarOptions='-axf'
                 tarFileName="${fileName}"
             else
@@ -23,11 +25,14 @@ _download(){
                 tarFileName=''
             fi
             if [ -f "${fileName}" ]; then
+                echo "${fileName} already exists, test ${fileName}"
                 tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+                echo "Test ${fileName} failed, re-download ${fileName}"
                 rm -f "${fileName}"
             fi
             echo "Downloading ${fileName} from ${url}"
-            curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            curl --continue-at - --speed-limit 20480 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            echo "Failed to download ${fileName} or test ${fileName}, try the next URL or return"
             rm -f "${fileName}"
         fi
     done
