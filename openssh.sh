@@ -185,6 +185,9 @@ modify_iptables(){
 
 modify_firewalld(){
     echo -n "Check the tcp/22 port in firewalld: "
+    if [ "${sshd_port}" = 22 ]; then
+        firewall-cmd --query-service=ssh && return
+    fi
     firewall-cmd --query-port "${sshd_port}"/tcp && return
     echo "Modify firewalld: "
     firewall-cmd --add-port="${sshd_port}"/tcp --permanent && firewall-cmd --reload
@@ -203,8 +206,8 @@ modify_fw(){
     fi
 }
 
-systemd_sshd(){
-    cat > /usr/lib/systemd/system/sshd.service<<"EOF"
+write_systemd_service_unit_file(){
+    cat > /etc/systemd/system/sshd.service<<"EOF"
 [Unit]
 Description=OpenSSH server daemon
 Documentation=man:sshd(8) man:sshd_config(5)
@@ -236,8 +239,10 @@ SSH_USE_STRONG_RNG=0
 # CRYPTO_POLICY=
 EOF
 
-    chown root:root /usr/lib/systemd/system/sshd*
-    chmod 644 /usr/lib/systemd/system/sshd*
+    chown root:root /etc/systemd/system/sshd.service
+    chown root:root /etc/sysconfig/sshd
+    chmod 644 /etc/systemd/system/sshd.service
+    chmod 640 /etc/sysconfig/sshd
 }
 
 privsep(){
@@ -354,8 +359,18 @@ generate_host_key(){
 }
 
 modify_ssh_file_permission(){
-    chown root:root -R /etc/ssh
-    chmod 600 /etc/ssh/ssh_host_*_key
+    if [ -d /etc/ssh ]; then
+        chown root:root -R /etc/ssh
+        chmod 755 /etc/ssh
+        chmod 600 /etc/ssh/ssh_host_*_key
+        chmod 600 /etc/ssh/sshd_config
+        chmod 644 /etc/ssh/ssh_host_*_key.pub
+        chmod 644 /etc/ssh/ssh_config
+        chmod 644 /etc/ssh/moduli
+    else
+        echo "/etc/ssh directory not found"
+        exit 1
+    fi
 }
 
 sshd_init(){
@@ -368,7 +383,7 @@ sshd_init(){
                 chown root:root /etc/rc.d/init.d/sshd
                 chmod 755 /etc/rc.d/init.d/sshd
             else
-                systemd_sshd
+                write_systemd_service_unit_file
                 systemctl daemon-reload
                 systemctl enable sshd.service
             fi
@@ -381,12 +396,14 @@ sshd_init(){
                 if systemctl list-unit-files | grep sshd.service >/dev/null; then
                     systemctl stop sshd.service && systemctl disable sshd.service
                 fi
-                rm -f /usr/lib/systemd/system/sshd*
+                rm -f /usr/lib/systemd/system/sshd-keygen@.service
+                rm -f /usr/lib/systemd/system/sshd-keygen.target
+                rm -f /usr/lib/systemd/system/sshd.service
+                rm -f /usr/lib/systemd/system/sshd@.service
+                rm -f /usr/lib/systemd/system/sshd.socket
                 rm -f /etc/sysconfig/sshd
+                rm -f /etc/systemd/system/sshd.service
             fi
-            rm -f /etc/ssh/ssh_host_*
-            rm -f /etc/ssh/moduli
-            rm -rf /var/empty/sshd
             ;;
         "status")
             if [ "${os_ver}" = 6 ]; then
@@ -421,6 +438,9 @@ uninstall_old_openssh(){
     mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak > /dev/null 2>&1
     rpm -e openssh-server
     sshd_init uninstall
+    rm -f /etc/ssh/ssh_host_*
+    rm -f /etc/ssh/moduli
+    rm -rf /var/empty/sshd
 }
 
 download_openssh(){
