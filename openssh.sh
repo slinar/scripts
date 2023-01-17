@@ -341,12 +341,17 @@ modify_sshd_pam(){
 }
 
 modify_sshdconfig(){
-    sed -i 's/#Port 22/Port '"${sshd_port}"'/' /etc/ssh/sshd_config
-    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
-    sed -i 's/#UseDNS no/UseDNS no/' /etc/ssh/sshd_config
-    [ "${pam}" = yes ] && sed -i 's/#UsePAM no/UsePAM yes/' /etc/ssh/sshd_config
-    sed -i 's/#TCPKeepAlive yes/TCPKeepAlive yes/' /etc/ssh/sshd_config
-    sed -i 's/#ClientAliveInterval 0/ClientAliveInterval 60/' /etc/ssh/sshd_config
+    sed -i 's/^[[:space:]#]*Port[[:space:]]\+[[:digit:]]\+[[:space:]]*$/Port '"${sshd_port}"'/' /etc/ssh/sshd_config
+    sed -i 's/^[[:space:]]*#\+[[:space:]]*PermitRootLogin[[:space:]]\+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+    sed -i 's/^[[:space:]]*UseDNS[[:space:]]\+yes[[:space:]]*$/#UseDNS no/' /etc/ssh/sshd_config
+    sed -i '/^[[:space:]]*GSSAPI.*/d' /etc/ssh/sshd_config
+    if [ "${pam}" = yes ]; then
+        sed -i 's/^[[:space:]#]*UsePAM[[:space:]]\+no[[:space:]]*$/UsePAM yes/' /etc/ssh/sshd_config
+    else
+        sed -i 's/^[[:space:]#]*UsePAM[[:space:]]\+yes[[:space:]]*$/#UsePAM no/' /etc/ssh/sshd_config
+    fi
+    sed -i 's/^#\+[[:space:]]*ClientAliveInterval[[:space:]]\+.*/ClientAliveInterval 30/' /etc/ssh/sshd_config
+    sed -i 's/^[[:space:]]*TCPKeepAlive[[:space:]]\+no[[:space:]]*$/#TCPKeepAlive yes/' /etc/ssh/sshd_config
 }
 
 modify_selinux(){
@@ -546,6 +551,7 @@ test_curl(){
     curl -sI https://1.0.0.1/ >/dev/null || { curl -I https://1.0.0.1/; echo "curl is not available"; exit 1;}
 }
 
+# Get the current sshd port, using the first value.If the current sshd port is not available then the default port is used
 get_current_sshd_port(){
     sshd_port=$(ss -lnpt4|grep sshd|awk '{print $4}'|awk -F : '{print $2}'|head -1)
     [ -z "${sshd_port}" ] && sshd_port="22"
@@ -562,8 +568,14 @@ echo "pam                : ${pam}"
 echo "use_default_config : ${use_default_config}"
 echo "without_openssl    : ${without_openssl}"
 echo "Backup             : /etc/pam.d/sshd /etc/pam.d/sshd_bak"
-[ "${without_openssl}" = yes ] && echo "[Warning] Your ssh client(SecureCRT >= 8.5.2) must support the following key exchange algorithms:" && printf "\tcurve25519-sha256\n\tcurve25519-sha256@libssh.org\n"
 echo "-------------------------------------------"
+
+[ "${without_openssl}" = yes ] && \
+echo "[Warning] It is recommended to set the script variable without_openssl to no, your ssh client(SecureCRT >= 8.5.2) must support the following key exchange algorithms:" && \
+printf "\tcurve25519-sha256\n\tcurve25519-sha256@libssh.org\n"
+
+echo 'Please set PermitRootLogin explicitly (without #), otherwise it will be set to yes'
+
 read -r -n 1 -p "Please confirm the above information. Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
