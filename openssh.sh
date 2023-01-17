@@ -571,9 +571,32 @@ echo "Backup             : /etc/pam.d/sshd /etc/pam.d/sshd_bak"
 echo "-------------------------------------------"
 
 [ "${without_openssl}" = yes ] && \
-echo "[Warning] It is recommended to set the script variable without_openssl to no, your ssh client(SecureCRT >= 8.5.2) must support the following key exchange algorithms:" && \
-printf "\tcurve25519-sha256\n\tcurve25519-sha256@libssh.org\n"
-
+echo "You chose to build openssh without openssl, only a subset of ciphers and algorithms are supported." && \
+cat <<EOF
+ssh2-enum-algos: 
+  kex_algorithms: (3)
+      sntrup761x25519-sha512@openssh.com
+      curve25519-sha256
+      curve25519-sha256@libssh.org
+  server_host_key_algorithms: (1)
+      ssh-ed25519
+  encryption_algorithms: (4)
+      chacha20-poly1305@openssh.com
+      aes128-ctr
+      aes192-ctr
+      aes256-ctr
+  mac_algorithms: (10)
+      umac-64-etm@openssh.com
+      umac-128-etm@openssh.com
+      hmac-sha2-256-etm@openssh.com
+      hmac-sha2-512-etm@openssh.com
+      hmac-sha1-etm@openssh.com
+      umac-64@openssh.com
+      umac-128@openssh.com
+      hmac-sha2-256
+      hmac-sha2-512
+      hmac-sha1
+EOF
 echo 'Please set PermitRootLogin explicitly (without #), otherwise it will be set to yes'
 
 read -r -n 1 -p "Please confirm the above information. Are you sure you want to continue? [y/n]" input
