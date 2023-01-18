@@ -596,9 +596,10 @@ ssh2-enum-algos:
       hmac-sha2-256
       hmac-sha2-512
       hmac-sha1
+-------------------------------------------
 EOF
 echo 'Please set PermitRootLogin explicitly (without #), otherwise it will be set to yes'
-
+echo
 read -r -n 1 -p "Please confirm the above information. Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
