@@ -1,7 +1,7 @@
 #!/bin/bash
 
 openssh_ver="openssh-9.1p1"
-openssl_ver="openssl-1.1.1s"
+openssl_ver="openssl-3.0.7"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 use_default_config=yes
@@ -160,7 +160,7 @@ build_openssl(){
     [ "${without_openssl}" = yes ] && return
     cd /tmp || exit 1
     { _download "${openssl_url[@]}" && tar -zxf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
-    ./config --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl -fPIC no-shared no-threads \
+    ./config --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl -fPIC no-shared no-threads no-weak-ssl-ciphers \
     || { echo "Failed to config openssl";exit 1;}
     make && make install_sw && return
     exit 1
@@ -378,11 +378,16 @@ modify_ssh_file_permission(){
     fi
 }
 
+modify_el6_sshd_init(){
+    [ -f /etc/rc.d/init.d/sshd ] && sed -i 's/ssh_host_dsa_key/ssh_host_ed25519_key/' /etc/rc.d/init.d/sshd
+}
+
 sshd_init(){
     case "$1" in
         "install")
             if [ "${os_ver}" = 6 ]; then
                 cp -f /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
+                modify_el6_sshd_init
                 chkconfig --add sshd
                 chkconfig sshd on
                 chown root:root /etc/rc.d/init.d/sshd
@@ -605,7 +610,7 @@ case $input in
     "y")
         echo
         check_yum
-        yum -y install gcc tar perl make pam-devel openssl ca-certificates || exit 1
+        yum -y install gcc tar perl perl-IPC-Cmd make pam-devel openssl ca-certificates || exit 1
         test_curl
         update_ca_certificates
         clean_tmp
