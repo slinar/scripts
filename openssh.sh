@@ -552,8 +552,10 @@ update_ca_certificates(){
 }
 
 test_curl(){
-    echo "Test url : https://1.0.0.1/"
-    curl -sI https://1.0.0.1/ >/dev/null || { curl -I https://1.0.0.1/; echo "curl is not available"; exit 1;}
+    local http_code
+    echo "Test url: https://1.0.0.1/"
+    http_code=$(curl -sI -o /dev/null -w '%{http_code}' https://1.0.0.1/)
+    [ "${http_code}" != 200 ] && { curl -I https://1.0.0.1/; echo "curl is not available"; exit 1;}
 }
 
 # Get the current sshd port, using the first value.If the current sshd port is not available then the default port is used
