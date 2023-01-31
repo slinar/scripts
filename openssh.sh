@@ -25,12 +25,6 @@ declare -ra openssh_url=(
     "https://ftp.riken.jp/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
 )
 
-declare -a ca_url=(
-    "https://pan.0db.org:65000/dep/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
-    "https://github.com/slinar/scripts/raw/master/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
-    "https://els6.baruwa.com/els6/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
-)
-
 [[ "${use_default_config}" =~ yes|no ]] || { echo "The value of use_default_config is invalid";exit 1;}
 [[ "${pam}" =~ yes|no ]] || { echo "The value of pam is invalid";exit 1;}
 [[ "${without_openssl}" =~ yes|no ]] || { echo "The value of without_openssl is invalid";exit 1;}
@@ -82,7 +76,7 @@ _download(){
                 rm -f "${fileName}"
             fi
             echo "Downloading ${fileName} from ${url}"
-            curl --continue-at - --speed-limit 20480 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             echo "Failed to download ${fileName} or test ${fileName}, try the next URL or return"
             rm -f "${fileName}"
         fi
@@ -517,40 +511,6 @@ clean_tmp(){
     fi
 }
 
-check_ca_rpm_hash(){
-    local sha256
-    local v
-    sha256='20a5c2f415a8c873bb759aefa721446452761627789927d997c305472a959c35'
-    v=$(sha256sum /tmp/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm|awk '{print $1}')
-    if [ "${sha256}" = "${v}" ]; then
-        return 0
-    else
-        echo "sha256 error: ${v}"
-        return 1
-    fi
-}
-
-check_ca_file_hash(){
-    local sha256
-    local v
-    sha256='3dd27fe1e3d46880e8579ef979c98014a4bb24ddac1fd4321da7f611bea41ec7'
-    v=$(sha256sum "$(readlink -e /etc/pki/tls/certs/ca-bundle.crt)"|awk '{print $1}')
-    if [ "${sha256}" = "${v}" ]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-update_ca_certificates(){
-    cd /tmp || exit 1
-    if [ "${os_ver}" = 6 ]; then
-        rpm -q ca-certificates-2021.2.50-60.1.el6_10.noarch && return
-        check_ca_file_hash && return
-        { _download "${ca_url[@]}" && check_ca_rpm_hash && rpm -vhU /tmp/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm;} || exit 1
-    fi
-}
-
 test_curl(){
     local http_code
     echo "Test url: https://1.0.0.1/"
@@ -614,7 +574,6 @@ case $input in
         check_yum
         yum -y install gcc tar perl perl-IPC-Cmd make pam-devel openssl ca-certificates || exit 1
         test_curl
-        update_ca_certificates
         clean_tmp
         build_openssl
         install_openssh
