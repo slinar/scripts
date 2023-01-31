@@ -1,7 +1,8 @@
 #!/bin/bash
-openssl_ver="openssl-1.1.1q"
-nghttp2_ver="nghttp2-1.50.0"
-curl_ver="curl-7.85.0"
+zlib_ver="zlib-1.2.13"
+openssl_ver="openssl-3.0.7"
+nghttp2_ver="nghttp2-1.51.0"
+curl_ver="curl-7.87.0"
 pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){
@@ -51,7 +52,7 @@ _download(){
                 rm -f "${fileName}"
             fi
             echo "Downloading ${fileName} from ${url}"
-            curl --continue-at - --speed-limit 20480 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             echo "Failed to download ${fileName} or test ${fileName}, try the next URL or return"
             rm -f "${fileName}"
         fi
@@ -59,25 +60,79 @@ _download(){
     return 1
 }
 
+write_CentOS_Base(){
+    cat > /etc/yum.repos.d/CentOS-Base.repo<<"EOF"
+# CentOS-Base.repo
+#
+# The mirror system uses the connecting IP address of the client and the
+# update status of each mirror to pick mirrors that are updated to and
+# geographically close to the client.  You should use this for CentOS updates
+# unless you are manually picking other mirrors.
+#
+# If the mirrorlist= does not work for you, as a fall back you can try the 
+# remarked out baseurl= line instead.
+#
+#
+
+[base]
+name=CentOS-$releasever - Base
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=os&infra=$infra
+baseurl=https://vault.centos.org/6.10/os/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+
+#released updates 
+[updates]
+name=CentOS-$releasever - Updates
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=updates&infra=$infra
+baseurl=https://vault.centos.org/6.10/updates/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+
+#additional packages that may be useful
+[extras]
+name=CentOS-$releasever - Extras
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=extras&infra=$infra
+baseurl=https://vault.centos.org/6.10/extras/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+
+#additional packages that extend functionality of existing packages
+[centosplus]
+name=CentOS-$releasever - Plus
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=centosplus&infra=$infra
+baseurl=https://vault.centos.org/6.10/centosplus/$basearch/
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+
+#contrib - packages by Centos Users
+[contrib]
+name=CentOS-$releasever - Contrib
+#mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=contrib&infra=$infra
+baseurl=https://vault.centos.org/6.10/contrib/$basearch/
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+EOF
+}
+
 check_yum(){
-    local ver
-    ver=$(_sysVer)
-    [ "${ver}" -ne 6 ] && return
+    [ "${os_ver}" != 6 ] && return
     [ -f /etc/yum.repos.d/CentOS-Base.repo ] && yum makecache && return
     mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
-    curl --silent -L "https://pan.0db.org:65000/Centos/CentOS-Base.repo" -o /etc/yum.repos.d/CentOS-Base.repo || { echo "CentOS-Base.repo download failed"; exit 3;}
+    write_CentOS_Base
     yum clean all && yum makecache && return
     exit 1
 }
 
-
 build_zlib(){
     cd /tmp || exit 1
-    declare -a url=(
-        "https://zlib.net/zlib-1.2.11.tar.gz"
-        "https://pan.0db.org:65000/dep/zlib-1.2.11.tar.gz"
+    declare -ra url=(
+        "https://zlib.net/${zlib_ver}.tar.gz"
+        "https://pan.0db.org:65000/dep/${zlib_ver}.tar.gz"
     )
-    { _download "${url[@]}" && tar -axf zlib-1.2.11.tar.gz && cd zlib-1.2.11 && chmod 744 configure;} || exit 1
+    { _download "${url[@]}" && tar -axf ${zlib_ver}.tar.gz && cd ${zlib_ver} && chmod 744 configure;} || exit 1
     ./configure --prefix=/tmp/zlib-static --static || exit 1
     make && make install && return
     exit 1
@@ -85,7 +140,7 @@ build_zlib(){
 
 build_openssl(){
     cd /tmp || exit 1
-    declare -a url=(
+    declare -ra url=(
         "https://www.openssl.org/source/${openssl_ver}.tar.gz"
         "https://pan.0db.org:65000/dep/${openssl_ver}.tar.gz"
     )
@@ -99,51 +154,52 @@ build_nghttp2(){
     cd /tmp || exit 1
     local ver_num
     ver_num=${nghttp2_ver:8:6}
-    declare -a url=(
+    declare -ra url=(
         "https://github.com/nghttp2/nghttp2/releases/download/v${ver_num}/${nghttp2_ver}.tar.gz"
         "https://pan.0db.org:65000/dep/${nghttp2_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${nghttp2_ver}.tar.gz && cd ${nghttp2_ver} && chmod 744 configure;} || exit 1
-    export OPENSSL_LIBS=/tmp/openssl-static
     ./configure --prefix=/tmp/nghttp2-static --enable-lib-only --enable-shared=no
     make && make install && return
     exit 1
 }
 
 install_pycurl(){
+    [ "${os_ver}" = 8 ] && return
     cd /tmp || exit 1
-    declare -a url=(
+    declare -ra url=(
         "https://github.com/pycurl/pycurl/archive/refs/tags/${pycurl_ver}.tar.gz"
         "https://pan.0db.org:65000/dep/${pycurl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${pycurl_ver}.tar.gz && cd pycurl-${pycurl_ver};} || exit 1
-    python setup.py docstrings && python setup.py install --curl-config=/usr/bin/curl-config && return
+    /usr/bin/python setup.py docstrings && /usr/bin/python setup.py install --openssl-dir=/tmp/openssl-static && return
     exit 1
 }
 
 install_curl(){
     cd /tmp || exit 1
-    declare -a url=(
+    local brotli_opt
+    brotli_opt="--with-brotli"
+    if [ "${os_ver}" = 6 ];then
+        brotli_opt="--without-brotli"
+    fi
+    declare -ra url=(
         "https://curl.se/download/${curl_ver}.tar.gz"
         "https://pan.0db.org:65000/dep/${curl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${curl_ver}.tar.gz && cd ${curl_ver} && chmod 744 configure;} || exit 1
-    ./configure \
-    --prefix=/usr \
-    --libdir=/usr/lib64 \
-    --enable-optimize \
-    --with-openssl=/tmp/openssl-static \
-    --with-zlib=/tmp/zlib-static \
-    --with-nghttp2=/tmp/nghttp2-static \
-    --with-libidn2 \
-    --with-ca-bundle=/etc/pki/tls/certs/ca-bundle.crt \
-    || exit 1
+    export PKG_CONFIG_PATH=/tmp/zlib-static/lib/pkgconfig:/tmp/nghttp2-static/lib/pkgconfig
+    ./configure --prefix=/usr --libdir=/usr/lib64 --enable-optimize --with-ca-bundle=/etc/pki/tls/certs/ca-bundle.crt --with-ssl=/tmp/openssl-static "${brotli_opt}" --with-libidn2 --without-libpsl || exit 1
     make && make install && return
     exit 1
 }
 
 show_curl_ver(){
     curl --version || echo 'curl is not installed correctly!'
+    if [ "${ca_certificates_flag}" = 1 ]; then
+        echo "ca-certificates may need to be updated"
+        rpm -q ca-certificates
+    fi
     echo "completed"
 }
 
@@ -152,7 +208,7 @@ check_ca(){
 }
 
 clean_tmp(){
-    rm -rf /tmp/zlib-1.2.11
+    rm -rf /tmp/${zlib_ver}
     rm -rf /tmp/zlib-static
     rm -rf /tmp/${openssl_ver}
     rm -rf /tmp/openssl-static
@@ -163,56 +219,39 @@ clean_tmp(){
 }
 
 exclude_curl_in_yum(){
-    if ! grep "^exclude=" /etc/yum.conf; then
-        sed -i "\$aexclude=libcurl curl" /etc/yum.conf
-    elif ! grep "^exclude=.*libcurl.*curl" /etc/yum.conf; then
-        local options
-        local options_libcurl
-        local options_curl
-        grep "^exclude=.*libcurl" /etc/yum.conf || options_libcurl="libcurl"
-        grep "^exclude=.*curl" /etc/yum.conf || options_curl="curl"
-        options="$(grep "^exclude=" /etc/yum.conf|awk -F = '{print $2}') ${options_libcurl} ${options_curl}"
-        sed -i "\$aexclude=${options}" /etc/yum.conf
-    fi
-}
-
-check_ca_rpm_hash(){
-    local sha256
-    local v
-    sha256='20a5c2f415a8c873bb759aefa721446452761627789927d997c305472a959c35'
-    v=$(sha256sum /tmp/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm|awk '{print $1}')
-    if [ ${sha256} == "${v}" ]; then
-        return 0
+    local yum_conf_file
+    yum_conf_file=/etc/yum.conf
+    [ "${os_ver}" = 8 ] && yum_conf_file=/etc/dnf/dnf.conf
+    if grep -q '^exclude=.*' ${yum_conf_file}; then
+        declare -a result
+        declare -a result_final
+        read -r -a result <<< "$(grep "^exclude=" ${yum_conf_file}|awk -F '=' '{print $2}')"
+        result+=(libcurl curl python-pycurl)
+        while IFS='' read -r line
+        do
+            result_final+=("$line")
+        done < <(echo "${result[@]}"|tr ' ' '\n'|sort -u)
+        sed -i 's/^exclude=.*/exclude='"${result_final[*]}"'/' ${yum_conf_file}
     else
-        echo "sha256 error: ${v}"
-        return 1
-    fi
-}
-
-check_ca_file_hash(){
-    local sha256
-    local v
-    sha256='3dd27fe1e3d46880e8579ef979c98014a4bb24ddac1fd4321da7f611bea41ec7'
-    v=$(sha256sum "$(readlink -e /etc/pki/tls/certs/ca-bundle.crt)"|awk '{print $1}')
-    if [ ${sha256} == "${v}" ]; then
-        return 0
-    else
-        return 1
+        # shellcheck disable=SC2016
+        sed -i '$aexclude=libcurl curl python-pycurl' ${yum_conf_file}
     fi
 }
 
 update_ca_certificates(){
-    cd /tmp || exit 1
-    declare -a ca_url=(
-        "http://dl.marmotte.net/rpms/redhat/el6/x86_64/ca-certificates-2021.2.50-65.1.ex1.el6_10/ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch.rpm"
-        "https://pan.0db.org:65000/dep/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm"
-    )
-    if [ "${os_ver}" == 6 ]; then
-        rpm -q ca-certificates-2021.2.50-60.1.el6_10.noarch && return
-        check_ca_file_hash && return
-        { _download "${ca_url[@]}" && check_ca_rpm_hash && rpm -vhU /tmp/ca-certificates-2021.2.50-60.1.el6_10.noarch.rpm;} || exit 1
+    if [ "${os_ver}" = 6 ]; then
+        cd /tmp || exit 1
+        declare -ra ca_url=(
+            "http://dl.marmotte.net/rpms/redhat/el6/x86_64/ca-certificates-2021.2.50-65.1.ex1.el6_10/ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch.rpm"
+        )
+        rpm -q ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch && return
+        { _download "${ca_url[@]}" && rpm -vhU /tmp/ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch.rpm;} || ca_certificates_flag=1
     fi
 }
+
+if [ "${os_ver}" != 8 ];then
+    openssl_ver="openssl-1.1.1s"
+fi
 
 echo "-------------------------------------------"
 echo "openssl : ${openssl_ver}"
@@ -227,7 +266,13 @@ case $input in
         _sysVer
         _checkPrivilege
         check_yum
-        yum -y install gcc gcc-c++ perl make python-devel openssl ca-certificates libidn2 libidn2-devel || exit 1
+        yum -y install gcc gcc-c++ perl perl-IPC-Cmd make openssl ca-certificates libidn2-devel || exit 1
+        if [ "${os_ver}" != 6 ];then
+            yum -y install brotli-devel || exit 1
+        fi
+        if [ "${os_ver}" != 8 ];then
+            yum -y install python-devel || exit 1
+        fi
         update_ca_certificates
         check_ca
         clean_tmp
