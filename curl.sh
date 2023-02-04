@@ -24,6 +24,9 @@ _sysVer(){
 }
 
 os_ver=$(_sysVer)
+if [ "${os_ver}" != 8 ]; then
+    openssl_ver="openssl-1.1.1s"
+fi
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
 _download(){
@@ -249,15 +252,27 @@ update_ca_certificates(){
     fi
 }
 
-if [ "${os_ver}" != 8 ];then
-    openssl_ver="openssl-1.1.1s"
-fi
+initializing_build_environment(){
+    yum -y install gcc gcc-c++ perl perl-IPC-Cmd make ca-certificates libidn2-devel || exit 1
+    if [ "${os_ver}" = 8 ];then
+        yum -y install brotli-devel || exit 1
+    fi
+    if [ "${os_ver}" = 7 ];then
+        yum -y install epel-release || exit 1
+        yum -y install brotli-devel || exit 1
+    fi
+    if [ "${os_ver}" != 8 ];then
+        yum -y install nss-tools python-devel curl libcurl python-pycurl || exit 1
+    fi
+    export CFLAGS="-fPIC"
+}
 
 echo "-------------------------------------------"
 echo "openssl : ${openssl_ver}"
 echo "nghttp2 : ${nghttp2_ver}"
 echo "curl    : ${curl_ver}"
 echo "pycurl  : ${pycurl_ver}"
+echo "zlib    : ${zlib_ver}"
 echo "-------------------------------------------"
 read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
@@ -266,17 +281,10 @@ case $input in
         _sysVer
         _checkPrivilege
         check_yum
-        yum -y install gcc gcc-c++ perl perl-IPC-Cmd make openssl ca-certificates libidn2-devel || exit 1
-        if [ "${os_ver}" != 6 ];then
-            yum -y install brotli-devel || exit 1
-        fi
-        if [ "${os_ver}" != 8 ];then
-            yum -y install python-devel || exit 1
-        fi
+        initializing_build_environment
         update_ca_certificates
         check_ca
         clean_tmp
-        export CFLAGS="-fPIC"
         build_zlib
         build_openssl
         build_nghttp2
