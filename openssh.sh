@@ -1,7 +1,7 @@
 #!/bin/bash
 
-openssh_ver="openssh-9.1p1"
-openssl_ver="openssl-3.0.7"
+openssh_ver="openssh-9.2p1"
+openssl_ver="openssl-3.0.8"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 use_default_config=yes
@@ -15,14 +15,13 @@ without_openssl=no
 # Download url
 declare -ra openssl_url=(
     "https://www.openssl.org/source/${openssl_ver}.tar.gz"
-    "https://pan.0db.org:65000/dep/${openssl_ver}.tar.gz"
-    "https://artfiles.org/openssl.org/source/${openssl_ver}.tar.gz"
+    "https://github.com/openssl/openssl/releases/download/${openssl_ver}/${openssl_ver}.tar.gz"
 )
 
 declare -ra openssh_url=(
     "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
     "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
-    "https://ftp.riken.jp/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
+    "https://mirror.edgecast.com/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
 )
 
 [[ "${use_default_config}" =~ yes|no ]] || { echo "The value of use_default_config is invalid";exit 1;}
@@ -565,7 +564,7 @@ ssh2-enum-algos:
       hmac-sha1
 -------------------------------------------
 EOF
-echo 'Please set PermitRootLogin explicitly (without #), otherwise it will be set to yes'
+# echo 'Please set PermitRootLogin explicitly (without #), otherwise it will be set to yes'
 echo
 read -r -n 1 -p "Please confirm the above information. Are you sure you want to continue? [y/n]" input
 case $input in
