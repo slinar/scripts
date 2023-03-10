@@ -1,4 +1,5 @@
 #!/bin/bash
+set -o pipefail
 
 openssh_ver="openssh-9.2p1"
 openssl_ver="openssl-3.0.8"
@@ -29,7 +30,7 @@ declare -ra openssh_url=(
 [[ "${without_openssl}" =~ yes|no ]] || { echo "The value of without_openssl is invalid";exit 1;}
 
 _checkPrivilege(){
-    test "$(id -u)" -eq 0 && return
+    [ "$(id -u)" -eq 0 ] && return
     echo "Require root privileges"
     exit 1
 }
@@ -160,20 +161,15 @@ build_openssl(){
 }
 
 modify_iptables(){
-    local num
-    num=$( iptables -nvL|grep -cE "ACCEPT.*tcp.*dpt:${sshd_port}" )
-    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -cE "ACCEPT.*tcp.*dports.* ${sshd_port}" )
-    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -cE "ACCEPT.*tcp.*dports.* ${sshd_port}," )
-    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -cE "ACCEPT.*tcp.*dports.*,${sshd_port}," )
-    [ "${num}" -eq 0 ] && num=$( iptables -nvL|grep -cE "ACCEPT.*tcp.*dports.*,${sshd_port}" )
-    if [ "${num}" -eq 0 ];then
-        iptables -P INPUT DROP
-        iptables -P FORWARD DROP
-        iptables -P OUTPUT ACCEPT
-        iptables -I INPUT -p tcp -m tcp --dport "${sshd_port}" -j ACCEPT
-        service iptables save
-        service iptables restart
-    fi
+    echo "Find iptables rules :"
+    iptables -nvL|grep -E "ACCEPT.*tcp.*dpt:${sshd_port}" || \
+    iptables -nvL|grep -E "ACCEPT.*tcp.*dports.*[,[:space:]]${sshd_port}," || \
+    iptables -nvL|grep -E "ACCEPT.*tcp.*dports.*[,[:space:]]${sshd_port}$" && return
+    echo "No rules found for accepting port ${sshd_port}"
+    iptables -P INPUT DROP
+    iptables -P OUTPUT ACCEPT
+    iptables -I INPUT -p tcp -m tcp --dport "${sshd_port}" -j ACCEPT
+    service iptables save
 }
 
 modify_firewalld(){
@@ -244,9 +240,9 @@ privsep(){
     mkdir -p /var/empty/sshd
     chown root:root /var/empty/sshd
     chmod 711 /var/empty/sshd
-    gid=$( grep 'sshd:x:' /etc/passwd|awk -F : '{print $4}' )
+    gid=$(grep 'sshd:x:' /etc/passwd|awk -F : '{print $4}')
     if [ -n "${gid}" ];then
-        gname=$( grep "${gid}" /etc/group|awk -F : '{print $1}' )
+        gname=$(grep "${gid}" /etc/group|awk -F : '{print $1}')
         [ "${gname}" != "sshd" ] && echo "user:sshd does not belong to group:sshd" && exit 1
     else
         groupadd sshd
@@ -500,13 +496,12 @@ install_openssh(){
     sshd_init start && ssh -V && echo "completed" && exit 0
 }
 
-clean_tmp(){
+pre_clean_tmp(){
     rm -rf /tmp/${openssl_ver}
     rm -rf /tmp/${openssh_ver}
     rm -rf /tmp/openssl-static
     if [[ ${os_ver} = "7" || ${os_ver} = "8" ]]; then
-        rm -rf /run/log/journal/*
-        systemctl restart systemd-journald
+        journalctl --quiet --vacuum-time=1months
     fi
 }
 
@@ -519,7 +514,7 @@ test_curl(){
 
 # Get the current sshd port, using the first value.If the current sshd port is not available then the default port is used
 get_current_sshd_port(){
-    sshd_port=$(ss -lnpt4|grep sshd|awk '{print $4}'|awk -F : '{print $2}'|head -1)
+    sshd_port=$(ss -lnpt|grep sshd|awk '{print $4}'|awk -F : '{print $2}'|head -1)
     [ -z "${sshd_port}" ] && sshd_port="22"
 }
 
@@ -573,7 +568,7 @@ case $input in
         check_yum
         yum -y install gcc tar perl perl-IPC-Cmd make pam-devel openssl ca-certificates || exit 1
         test_curl
-        clean_tmp
+        pre_clean_tmp
         build_openssl
         install_openssh
         ;;
