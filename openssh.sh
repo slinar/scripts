@@ -29,13 +29,13 @@ declare -ra openssh_url=(
 [[ "${pam}" =~ yes|no ]] || { echo "The value of pam is invalid";exit 1;}
 [[ "${without_openssl}" =~ yes|no ]] || { echo "The value of without_openssl is invalid";exit 1;}
 
-_checkPrivilege(){
+_check_privilege(){
     [ "$(id -u)" -eq 0 ] && return
     echo "Require root privileges"
     exit 1
 }
 
-_sysVer(){
+_get_os_version(){
     local v
     local vv
     v=$(uname -r|awk -F "el" '{print $2}')
@@ -47,7 +47,7 @@ _sysVer(){
     exit 2
 }
 
-os_ver=$(_sysVer)
+os_ver=$(_get_os_version)
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
 _download(){
@@ -477,6 +477,26 @@ select_config(){
     fi
 }
 
+# Normally you should uninstall the old version of openssh before installing the new version, but git requires openssh-clients.
+# So you cannot remove openssh and openssh-clients, otherwise git will become no longer available.
+# You can exclude these two packages from yum or dnf to avoid overwriting openssh and openssh-clients when upgrading your system.
+exclude_openssh(){
+    local yum_conf_file
+    yum_conf_file=/etc/yum.conf
+    [ "${os_ver}" = 8 ] && yum_conf_file=/etc/dnf/dnf.conf
+    echo "Exclude openssh and openssh-clients from ${yum_conf_file}"
+    if grep -q '^exclude=.*' ${yum_conf_file}; then
+        local result
+        result=$(grep "^exclude=" /etc/dnf/dnf.conf|awk -F = '{print $2}'|xargs echo -n)
+        result="${result} openssh openssh-clients"
+        result=$(echo -n "${result}"|tr ' ' '\n'|sort -u|tr '\n' ' '|xargs echo -n)
+        sed -i 's/^exclude=.*/exclude='"${result}"'/' ${yum_conf_file}
+    else
+        # shellcheck disable=SC2016
+        sed -i '$aexclude=openssh openssh-clients' ${yum_conf_file}
+    fi
+}
+
 install_openssh(){
     download_openssh
     privsep
@@ -493,7 +513,7 @@ install_openssh(){
     modify_ssh_file_permission
     sshd_init install
     kill_sshd_main_process
-    sshd_init start && ssh -V && echo "completed" && exit 0
+    sshd_init start && ssh -V && sshd -V
 }
 
 pre_clean_tmp(){
@@ -501,6 +521,8 @@ pre_clean_tmp(){
     rm -rf /tmp/${openssh_ver}
     rm -rf /tmp/openssl-static
     if [[ ${os_ver} = "7" || ${os_ver} = "8" ]]; then
+        journalctl --flush
+        journalctl --rotate
         journalctl --quiet --vacuum-time=1months
     fi
 }
@@ -518,7 +540,7 @@ get_current_sshd_port(){
     [ -z "${sshd_port}" ] && sshd_port="22"
 }
 
-_checkPrivilege
+_check_privilege
 get_current_sshd_port
 
 echo "-------------------------------------------"
@@ -571,6 +593,8 @@ case $input in
         pre_clean_tmp
         build_openssl
         install_openssh
+        exclude_openssh
+        echo "completed"
         ;;
     *)
         echo
