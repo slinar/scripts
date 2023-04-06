@@ -536,7 +536,7 @@ test_curl(){
 
 # Get the current sshd port, using the first value.If the current sshd port is not available then the default port is used
 get_current_sshd_port(){
-    sshd_port=$(ss -lnpt|grep sshd|awk '{print $4}'|awk -F : '{print $2}'|head -1)
+    sshd_port=$(ss -lnpt|grep sshd|awk '{print $4}'|awk -F : '{print $NF}'|head -1)
     [ -z "${sshd_port}" ] && sshd_port="22"
 }
 
