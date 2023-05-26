@@ -44,7 +44,7 @@ download_zlib(){
     cd /tmp || exit 1
     declare -a url=(
         "https://www.zlib.net/${zlib_ver}.tar.gz"
-        "https://pan.0db.org:65000/zlib-1.2.13.tar.gz"
+        "https://pan.0db.org:65000/${zlib_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${zlib_ver}.tar.gz && cd ${zlib_ver} && chmod 744 configure;} || exit 1
 }
