@@ -1,8 +1,9 @@
 #!/bin/bash
-openssl_ver="openssl-1.1.1s"
-nginx_ver="nginx-1.22.1"
+openssl_ver="openssl-3.0.8"
+nginx_ver="nginx-1.24.0"
 fancyindex_ver="ngx-fancyindex-0.5.2"
 pcre2_ver="pcre2-10.42"
+zlib_ver="zlib-1.2.13"
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
 _download(){
@@ -31,7 +32,7 @@ _download(){
                 rm -f "${fileName}"
             fi
             echo "Downloading ${fileName} from ${url}"
-            curl --continue-at - --speed-limit 20480 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             echo "Failed to download ${fileName} or test ${fileName}, try the next URL or return"
             rm -f "${fileName}"
         fi
@@ -42,17 +43,17 @@ _download(){
 download_zlib(){
     cd /tmp || exit 1
     declare -a url=(
-        "https://zlib.net/zlib-1.2.11.tar.gz"
-        "https://pan.0db.org:65000/dep/zlib-1.2.11.tar.gz"
+        "https://www.zlib.net/${zlib_ver}.tar.gz"
+        "https://pan.0db.org:65000/zlib-1.2.13.tar.gz"
     )
-    { _download "${url[@]}" && tar -axf zlib-1.2.11.tar.gz && cd zlib-1.2.11 && chmod 744 configure;} || exit 1
+    { _download "${url[@]}" && tar -axf ${zlib_ver}.tar.gz && cd ${zlib_ver} && chmod 744 configure;} || exit 1
 }
 
 download_openssl(){
     cd /tmp || exit 1
     declare -a url=(
         "https://www.openssl.org/source/${openssl_ver}.tar.gz"
-        "https://pan.0db.org:65000/dep/${openssl_ver}.tar.gz"
+        "https://github.com/openssl/openssl/releases/download/${openssl_ver}/${openssl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
 }
@@ -60,7 +61,7 @@ download_openssl(){
 download_pcre(){
     cd /tmp || exit 1
     declare -a url=(
-        "https://pan.0db.org:65000/dep/${pcre2_ver}.tar.gz"
+        "https://pan.0db.org:65000/${pcre2_ver}.tar.gz"
         "https://github.com/PCRE2Project/pcre2/releases/download/${pcre2_ver}/${pcre2_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${pcre2_ver}.tar.gz && cd ${pcre2_ver} && chmod 744 configure;} || exit 1
@@ -69,11 +70,24 @@ download_pcre(){
 build_fancyindex(){
     cd /tmp || exit 1
     declare -a url=(
-        "https://pan.0db.org:65000/dep/${fancyindex_ver}.tar.xz"
+        "https://pan.0db.org:65000/${fancyindex_ver}.tar.xz"
+        "https://github.com/aperezdc/ngx-fancyindex/releases/download/v0.5.2/ngx-fancyindex-0.5.2.tar.xz"
     )
     { _download "${url[@]}" && tar -axf ${fancyindex_ver}.tar.xz && cd ${fancyindex_ver};} || exit 1
     cd /tmp/${nginx_ver} || exit 1
     ./configure --with-compat --add-dynamic-module=/tmp/${fancyindex_ver} || exit 1
+    make modules || exit 1
+}
+
+build_dav_ext(){
+    cd /tmp || exit 1
+    declare -a url=(
+        "https://pan.0db.org:65000/nginx-dav-ext-module-3.0.0.tar.gz"
+        "https://github.com/arut/nginx-dav-ext-module/archive/refs/tags/v3.0.0.tar.gz"
+    )
+    { _download "${url[@]}" && tar -axf nginx-dav-ext-module-3.0.0.tar.gz && cd nginx-dav-ext-module-3.0.0;} || exit 1
+    cd /tmp/${nginx_ver} || exit 1
+    ./configure --with-compat --with-http_dav_module --add-dynamic-module=/tmp/nginx-dav-ext-module-3.0.0 || exit 1
     make modules || exit 1
 }
 
@@ -107,13 +121,14 @@ configure_nginx(){
     --with-http_gzip_static_module \
     --with-http_mp4_module \
     --with-http_realip_module \
+    --with-http_secure_link_module \
     --with-http_ssl_module \
     --with-http_v2_module \
     --with-stream \
     --with-stream_realip_module \
     --with-stream_ssl_module \
     --with-stream_ssl_preread_module \
-    --with-zlib=/tmp/zlib-1.2.11 \
+    --with-zlib=/tmp/${zlib_ver} \
     --with-pcre=/tmp/${pcre2_ver} \
     --with-cc-opt='-O3 -pipe -Wall -fPIC' \
     || { echo "configure ${nginx_ver} failed!";exit 1;}
@@ -135,10 +150,11 @@ build_nginx(){
 
 clean_tmp(){
     rm -rf "/tmp/${openssl_ver}"
-    rm -rf "/tmp/zlib-1.2.11"
+    rm -rf "/tmp/${zlib_ver}"
     rm -rf "/tmp/${pcre2_ver}"
     rm -rf "/tmp/${fancyindex_ver}"
     rm -rf "/tmp/${nginx_ver}"
+    rm -rf "/tmp/nginx-dav-ext-module-3.0.0"
 }
 
 list_objs(){
@@ -146,22 +162,25 @@ list_objs(){
 }
 
 echo
-echo "openssl          : ${openssl_ver}"
-echo "nginx            : ${nginx_ver}"
-echo "fancyindex       : ${fancyindex_ver}"
+echo "openssl      : ${openssl_ver}"
+echo "nginx        : ${nginx_ver}"
+echo "fancyindex   : ${fancyindex_ver}"
+echo "zlib         : ${zlib_ver} "
+echo "pcre2        : ${pcre2_ver}"
 echo
 echo 'You can execute "nginx.sh index" and install the fancyindex module separately'
 read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
 case $input in
     "y")
         echo
-        yum -y install gcc gcc-c++ perl make pcre-devel openssl-devel zlib-devel ca-certificates || exit 1
+        yum -y install gcc gcc-c++ perl perl-IPC-Cmd make libxslt-devel ca-certificates || exit 1
         clean_tmp
         download_openssl
         download_zlib
         download_pcre
         build_nginx
         build_fancyindex
+        build_dav_ext
         list_objs
         echo 'completed'
         ;;

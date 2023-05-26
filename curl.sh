@@ -1,8 +1,8 @@
 #!/bin/bash
 zlib_ver="zlib-1.2.13"
-openssl_ver="openssl-3.0.7"
-nghttp2_ver="nghttp2-1.51.0"
-curl_ver="curl-7.87.0"
+openssl_ver="openssl-3.0.8"
+nghttp2_ver="nghttp2-1.53.0"
+curl_ver="curl-8.1.0"
 pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){
@@ -25,7 +25,7 @@ _sysVer(){
 
 os_ver=$(_sysVer)
 if [ "${os_ver}" != 8 ]; then
-    openssl_ver="openssl-1.1.1s"
+    openssl_ver="openssl-1.1.1t"
 fi
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
@@ -133,7 +133,7 @@ build_zlib(){
     cd /tmp || exit 1
     declare -ra url=(
         "https://zlib.net/${zlib_ver}.tar.gz"
-        "https://pan.0db.org:65000/dep/${zlib_ver}.tar.gz"
+        "https://pan.0db.org:65000/${zlib_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${zlib_ver}.tar.gz && cd ${zlib_ver} && chmod 744 configure;} || exit 1
     ./configure --prefix=/tmp/zlib-static --static || exit 1
@@ -145,7 +145,7 @@ build_openssl(){
     cd /tmp || exit 1
     declare -ra url=(
         "https://www.openssl.org/source/${openssl_ver}.tar.gz"
-        "https://pan.0db.org:65000/dep/${openssl_ver}.tar.gz"
+        "https://github.com/openssl/openssl/releases/download/${openssl_ver}/${openssl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
     ./config --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl -fPIC no-shared no-threads || exit 1
@@ -159,7 +159,7 @@ build_nghttp2(){
     ver_num=${nghttp2_ver:8:6}
     declare -ra url=(
         "https://github.com/nghttp2/nghttp2/releases/download/v${ver_num}/${nghttp2_ver}.tar.gz"
-        "https://pan.0db.org:65000/dep/${nghttp2_ver}.tar.gz"
+        "https://pan.0db.org:65000/${nghttp2_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${nghttp2_ver}.tar.gz && cd ${nghttp2_ver} && chmod 744 configure;} || exit 1
     ./configure --prefix=/tmp/nghttp2-static --enable-lib-only --enable-shared=no
@@ -172,7 +172,7 @@ install_pycurl(){
     cd /tmp || exit 1
     declare -ra url=(
         "https://github.com/pycurl/pycurl/archive/refs/tags/${pycurl_ver}.tar.gz"
-        "https://pan.0db.org:65000/dep/${pycurl_ver}.tar.gz"
+        "https://pan.0db.org:65000/${pycurl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${pycurl_ver}.tar.gz && cd pycurl-${pycurl_ver};} || exit 1
     /usr/bin/python setup.py docstrings && /usr/bin/python setup.py install --openssl-dir=/tmp/openssl-static && return
@@ -188,7 +188,7 @@ install_curl(){
     fi
     declare -ra url=(
         "https://curl.se/download/${curl_ver}.tar.gz"
-        "https://pan.0db.org:65000/dep/${curl_ver}.tar.gz"
+        "https://pan.0db.org:65000/${curl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${curl_ver}.tar.gz && cd ${curl_ver} && chmod 744 configure;} || exit 1
     export PKG_CONFIG_PATH=/tmp/zlib-static/lib/pkgconfig:/tmp/nghttp2-static/lib/pkgconfig
@@ -225,16 +225,13 @@ exclude_curl_in_yum(){
     local yum_conf_file
     yum_conf_file=/etc/yum.conf
     [ "${os_ver}" = 8 ] && yum_conf_file=/etc/dnf/dnf.conf
+    echo "Exclude curl and libcurl from ${yum_conf_file}"
     if grep -q '^exclude=.*' ${yum_conf_file}; then
-        declare -a result
-        declare -a result_final
-        read -r -a result <<< "$(grep "^exclude=" ${yum_conf_file}|awk -F '=' '{print $2}')"
-        result+=(libcurl curl python-pycurl)
-        while IFS='' read -r line
-        do
-            result_final+=("$line")
-        done < <(echo "${result[@]}"|tr ' ' '\n'|sort -u)
-        sed -i 's/^exclude=.*/exclude='"${result_final[*]}"'/' ${yum_conf_file}
+        local result
+        result=$(grep "^exclude=" /etc/dnf/dnf.conf|awk -F = '{print $2}'|xargs echo -n)
+        result="${result} libcurl curl python-pycurl"
+        result=$(echo -n "${result}"|tr ' ' '\n'|sort -u|tr '\n' ' '|xargs echo -n)
+        sed -i 's/^exclude=.*/exclude='"${result}"'/' ${yum_conf_file}
     else
         # shellcheck disable=SC2016
         sed -i '$aexclude=libcurl curl python-pycurl' ${yum_conf_file}
@@ -246,6 +243,7 @@ update_ca_certificates(){
         cd /tmp || exit 1
         declare -ra ca_url=(
             "http://dl.marmotte.net/rpms/redhat/el6/x86_64/ca-certificates-2021.2.50-65.1.ex1.el6_10/ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch.rpm"
+            "https://pan.0db.org:65000/ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch.rpm"
         )
         rpm -q ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch && return
         { _download "${ca_url[@]}" && rpm -vhU /tmp/ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch.rpm;} || ca_certificates_flag=1
