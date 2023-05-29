@@ -164,7 +164,7 @@ modify_iptables(){
     echo "Find iptables rules :"
     iptables -nvL|grep -E "ACCEPT.*tcp.*dpt:${sshd_port}" || \
     iptables -nvL|grep -E "ACCEPT.*tcp.*dports.*[,[:space:]]${sshd_port}," || \
-    iptables -nvL|grep -E "ACCEPT.*tcp.*dports.*[,[:space:]]${sshd_port}$" && return
+    iptables -nvL|grep -E "ACCEPT.*tcp.*dports.*[,[:space:]]${sshd_port}[[:space:]]*$" && return
     echo "No rules found for accepting port ${sshd_port}"
     iptables -P INPUT DROP
     iptables -P OUTPUT ACCEPT
