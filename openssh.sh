@@ -2,7 +2,7 @@
 set -o pipefail
 
 openssh_ver="openssh-9.3p1"
-openssl_ver="openssl-3.0.8"
+openssl_ver="openssl-3.0.9"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 use_default_config=yes
@@ -588,7 +588,8 @@ case $input in
     "y")
         echo
         check_yum
-        yum -y install gcc tar perl perl-IPC-Cmd make pam-devel openssl ca-certificates || exit 1
+        yum -y install gcc tar perl perl-IPC-Cmd make pam-devel ca-certificates || exit 1
+        yum -y update nss-tools
         test_curl
         pre_clean_tmp
         build_openssl

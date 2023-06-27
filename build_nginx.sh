@@ -1,5 +1,5 @@
 #!/bin/bash
-openssl_ver="openssl-3.0.8"
+openssl_ver="openssl-3.0.9"
 nginx_ver="nginx-1.24.0"
 fancyindex_ver="ngx-fancyindex-0.5.2"
 pcre2_ver="pcre2-10.42"
@@ -174,6 +174,7 @@ case $input in
     "y")
         echo
         yum -y install gcc gcc-c++ perl perl-IPC-Cmd make libxslt-devel ca-certificates || exit 1
+        yum -y update nss-tools
         clean_tmp
         download_openssl
         download_zlib
