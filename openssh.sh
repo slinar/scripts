@@ -189,7 +189,7 @@ modify_fw(){
     elif systemctl status firewalld.service --no-pager --full; then
         echo "modify_firewalld"
         modify_firewalld
-    elif systemctl status iptables.service; then
+    elif systemctl status iptables.service --no-pager --full; then
         echo "modify_iptables(el8)"
         modify_iptables
     fi
@@ -583,7 +583,7 @@ ssh2-enum-algos:
 EOF
 # echo 'Please set PermitRootLogin explicitly (without #), otherwise it will be set to yes'
 echo
-read -r -n 1 -p "Please confirm the above information. Are you sure you want to continue? [y/n]" input
+read -r -n 1 -p "Please confirm the above information. do you want to continue? [y/n]" input
 case $input in
     "y")
         echo
