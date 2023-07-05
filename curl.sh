@@ -1,8 +1,8 @@
 #!/bin/bash
 zlib_ver="zlib-1.2.13"
-openssl_ver="openssl-3.0.8"
-nghttp2_ver="nghttp2-1.53.0"
-curl_ver="curl-8.1.0"
+openssl_ver="openssl-3.0.9"
+nghttp2_ver="nghttp2-1.54.0"
+curl_ver="curl-8.1.2"
 pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){
@@ -25,7 +25,7 @@ _sysVer(){
 
 os_ver=$(_sysVer)
 if [ "${os_ver}" != 8 ]; then
-    openssl_ver="openssl-1.1.1t"
+    openssl_ver="openssl-1.1.1u"
 fi
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
@@ -228,7 +228,7 @@ exclude_curl_in_yum(){
     echo "Exclude curl and libcurl from ${yum_conf_file}"
     if grep -q '^exclude=.*' ${yum_conf_file}; then
         local result
-        result=$(grep "^exclude=" /etc/dnf/dnf.conf|awk -F = '{print $2}'|xargs echo -n)
+        result=$(grep "^exclude=" ${yum_conf_file}|awk -F = '{print $2}'|xargs echo -n)
         result="${result} libcurl curl python-pycurl"
         result=$(echo -n "${result}"|tr ' ' '\n'|sort -u|tr '\n' ' '|xargs echo -n)
         sed -i 's/^exclude=.*/exclude='"${result}"'/' ${yum_conf_file}
@@ -272,7 +272,7 @@ echo "curl    : ${curl_ver}"
 echo "pycurl  : ${pycurl_ver}"
 echo "zlib    : ${zlib_ver}"
 echo "-------------------------------------------"
-read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
+read -r -n 1 -p "Do you want to continue? [y/n]" input
 case $input in
     "y")
         echo

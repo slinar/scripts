@@ -71,12 +71,12 @@ _download(){
             fi
             if [ -f "${fileName}" ]; then
                 echo "${fileName} already exists, test ${fileName}"
-                tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+                tar ${tarOptions} "${tarFileName}" -O > /dev/null && return 0
                 echo "Test ${fileName} failed, re-download ${fileName}"
                 rm -f "${fileName}"
             fi
             echo "Downloading ${fileName} from ${url}"
-            curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O > /dev/null && return 0
             echo "Failed to download ${fileName} or test ${fileName}, try the next URL or return"
             rm -f "${fileName}"
         fi
@@ -144,7 +144,7 @@ EOF
 check_yum(){
     [ "${os_ver}" != 6 ] && return
     [ -f /etc/yum.repos.d/CentOS-Base.repo ] && yum makecache && return
-    mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
+    mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak &> /dev/null
     write_CentOS_Base
     yum clean all && yum makecache && return
     exit 1
@@ -389,10 +389,10 @@ sshd_init(){
             ;;
         "uninstall")
             if [ "${os_ver}" = 6 ]; then
-                chkconfig --del sshd > /dev/null 2>&1
+                chkconfig --del sshd &> /dev/null
                 rm -f /etc/rc.d/init.d/sshd
             else
-                if systemctl list-unit-files | grep sshd.service >/dev/null; then
+                if systemctl list-unit-files | grep sshd.service > /dev/null; then
                     systemctl stop sshd.service && systemctl disable sshd.service
                 fi
                 rm -f /usr/lib/systemd/system/sshd-keygen@.service
@@ -432,9 +432,9 @@ sshd_init(){
 }
 
 uninstall_old_openssh(){
-    cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak > /dev/null 2>&1
-    mv -f /etc/ssh/ssh_config /etc/ssh/ssh_config_bak > /dev/null 2>&1
-    mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak > /dev/null 2>&1
+    cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak &> /dev/null
+    mv -f /etc/ssh/ssh_config /etc/ssh/ssh_config_bak &> /dev/null
+    mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak &> /dev/null
     rpm -e openssh-server
     sshd_init uninstall
     rm -f /etc/ssh/ssh_host_*
@@ -487,7 +487,7 @@ exclude_openssh(){
     echo "Exclude openssh and openssh-clients from ${yum_conf_file}"
     if grep -q '^exclude=.*' ${yum_conf_file}; then
         local result
-        result=$(grep "^exclude=" /etc/dnf/dnf.conf|awk -F = '{print $2}'|xargs echo -n)
+        result=$(grep "^exclude=" ${yum_conf_file}|awk -F = '{print $2}'|xargs echo -n)
         result="${result} openssh openssh-clients"
         result=$(echo -n "${result}"|tr ' ' '\n'|sort -u|tr '\n' ' '|xargs echo -n)
         sed -i 's/^exclude=.*/exclude='"${result}"'/' ${yum_conf_file}
