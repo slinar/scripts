@@ -1,5 +1,5 @@
 #!/bin/bash
-openssl_ver="openssl-3.0.9"
+openssl_ver="openssl-3.0.10"
 nginx_ver="nginx-1.24.0"
 fancyindex_ver="ngx-fancyindex-0.5.2"
 pcre2_ver="pcre2-10.42"
@@ -169,7 +169,7 @@ echo "zlib         : ${zlib_ver} "
 echo "pcre2        : ${pcre2_ver}"
 echo
 echo 'You can execute "nginx.sh index" and install the fancyindex module separately'
-read -r -n 1 -p "Are you sure you want to continue? [y/n]" input
+read -r -n 1 -p "Do you want to continue? [y/n]" input
 case $input in
     "y")
         echo
