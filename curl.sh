@@ -2,7 +2,7 @@
 zlib_ver="zlib-1.2.13"
 openssl_ver="openssl-3.0.10"
 nghttp2_ver="nghttp2-1.54.0"
-curl_ver="curl-8.1.2"
+curl_ver="curl-8.2.1"
 pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){
@@ -25,7 +25,7 @@ _sysVer(){
 
 os_ver=$(_sysVer)
 if [ "${os_ver}" != 8 ]; then
-    openssl_ver="openssl-1.1.1u"
+    openssl_ver="openssl-1.1.1v"
 fi
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
