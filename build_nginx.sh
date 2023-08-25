@@ -164,7 +164,7 @@ clean_tmp(){
     rm -rf "/tmp/${pcre2_ver}"
     rm -rf "/tmp/${fancyindex_ver}"
     rm -rf "/tmp/${nginx_ver}"
-    rm -rf "/tmp/v3.0.0"
+    rm -rf "/tmp/nginx-dav-ext-module-3.0.0"
     rm -rf "/tmp/${libressl_ver}"
     rm -rf "/tmp/libressl-static"
 }
