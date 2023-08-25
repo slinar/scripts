@@ -1,9 +1,10 @@
 #!/bin/bash
+libressl_ver="libressl-3.7.3"
 openssl_ver="openssl-3.0.10"
-nginx_ver="nginx-1.24.0"
+nginx_ver="nginx-1.25.2"
 fancyindex_ver="ngx-fancyindex-0.5.2"
 pcre2_ver="pcre2-10.42"
-zlib_ver="zlib-1.2.13"
+zlib_ver="zlib-1.3"
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
 _download(){
@@ -44,7 +45,6 @@ download_zlib(){
     cd /tmp || exit 1
     declare -a url=(
         "https://www.zlib.net/${zlib_ver}.tar.gz"
-        "https://pan.0db.org:65000/${zlib_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${zlib_ver}.tar.gz && cd ${zlib_ver} && chmod 744 configure;} || exit 1
 }
@@ -58,10 +58,21 @@ download_openssl(){
     { _download "${url[@]}" && tar -axf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
 }
 
+build_libressl(){
+    cd /tmp || exit 1
+    declare -a url=(
+        "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"
+        "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"
+        "https://cdn.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"
+    )
+    { _download "${url[@]}" && tar -axf ${libressl_ver}.tar.gz && cd ${libressl_ver} && chmod 744 configure;} || exit 1
+    ./configure --prefix=/tmp/libressl-static --with-openssldir=/tmp/libressl-static/ssl --enable-shared=no || exit 1
+    make && make install || exit 1
+}
+
 download_pcre(){
     cd /tmp || exit 1
     declare -a url=(
-        "https://pan.0db.org:65000/${pcre2_ver}.tar.gz"
         "https://github.com/PCRE2Project/pcre2/releases/download/${pcre2_ver}/${pcre2_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${pcre2_ver}.tar.gz && cd ${pcre2_ver} && chmod 744 configure;} || exit 1
@@ -70,7 +81,6 @@ download_pcre(){
 build_fancyindex(){
     cd /tmp || exit 1
     declare -a url=(
-        "https://pan.0db.org:65000/${fancyindex_ver}.tar.xz"
         "https://github.com/aperezdc/ngx-fancyindex/releases/download/v0.5.2/ngx-fancyindex-0.5.2.tar.xz"
     )
     { _download "${url[@]}" && tar -axf ${fancyindex_ver}.tar.xz && cd ${fancyindex_ver};} || exit 1
@@ -82,10 +92,9 @@ build_fancyindex(){
 build_dav_ext(){
     cd /tmp || exit 1
     declare -a url=(
-        "https://pan.0db.org:65000/nginx-dav-ext-module-3.0.0.tar.gz"
         "https://github.com/arut/nginx-dav-ext-module/archive/refs/tags/v3.0.0.tar.gz"
     )
-    { _download "${url[@]}" && tar -axf nginx-dav-ext-module-3.0.0.tar.gz && cd nginx-dav-ext-module-3.0.0;} || exit 1
+    { _download "${url[@]}" && tar -axf v3.0.0.tar.gz && cd nginx-dav-ext-module-3.0.0;} || exit 1
     cd /tmp/${nginx_ver} || exit 1
     ./configure --with-compat --with-http_dav_module --add-dynamic-module=/tmp/nginx-dav-ext-module-3.0.0 || exit 1
     make modules || exit 1
@@ -112,7 +121,6 @@ configure_nginx(){
     --with-compat \
     --with-file-aio \
     --with-threads \
-    --with-openssl=/tmp/${openssl_ver} \
     --with-http_addition_module \
     --with-http_auth_request_module \
     --with-http_dav_module \
@@ -124,13 +132,15 @@ configure_nginx(){
     --with-http_secure_link_module \
     --with-http_ssl_module \
     --with-http_v2_module \
+    --with-http_v3_module \
     --with-stream \
     --with-stream_realip_module \
     --with-stream_ssl_module \
     --with-stream_ssl_preread_module \
     --with-zlib=/tmp/${zlib_ver} \
     --with-pcre=/tmp/${pcre2_ver} \
-    --with-cc-opt='-O3 -pipe -Wall -fPIC' \
+    --with-cc-opt='-O3 -pipe -Wall -fPIC -I/tmp/libressl-static/include' \
+    --with-ld-opt="-L/tmp/libressl-static/lib" \
     || { echo "configure ${nginx_ver} failed!";exit 1;}
 }
 
@@ -154,7 +164,9 @@ clean_tmp(){
     rm -rf "/tmp/${pcre2_ver}"
     rm -rf "/tmp/${fancyindex_ver}"
     rm -rf "/tmp/${nginx_ver}"
-    rm -rf "/tmp/nginx-dav-ext-module-3.0.0"
+    rm -rf "/tmp/v3.0.0"
+    rm -rf "/tmp/${libressl_ver}"
+    rm -rf "/tmp/libressl-static"
 }
 
 list_objs(){
@@ -176,9 +188,9 @@ case $input in
         yum -y install gcc gcc-c++ perl perl-IPC-Cmd make libxslt-devel ca-certificates || exit 1
         yum -y update nss-tools
         clean_tmp
-        download_openssl
         download_zlib
         download_pcre
+        build_libressl
         build_nginx
         build_fancyindex
         build_dav_ext

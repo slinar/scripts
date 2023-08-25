@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o pipefail
 
-openssh_ver="openssh-9.3p2"
+openssh_ver="openssh-9.4p1"
 openssl_ver="openssl-3.0.10"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
@@ -484,17 +484,22 @@ exclude_openssh(){
     local yum_conf_file
     yum_conf_file=/etc/yum.conf
     [ "${os_ver}" = 8 ] && yum_conf_file=/etc/dnf/dnf.conf
-    echo "Exclude openssh and openssh-clients from ${yum_conf_file}"
+    echo "Exclude openssh, openssh-clients, openssh-server from ${yum_conf_file}"
     if grep -q '^exclude=.*' ${yum_conf_file}; then
         local result
         result=$(grep "^exclude=" ${yum_conf_file}|awk -F = '{print $2}'|xargs echo -n)
-        result="${result} openssh openssh-clients"
+        result="${result} openssh openssh-clients openssh-server"
         result=$(echo -n "${result}"|tr ' ' '\n'|sort -u|tr '\n' ' '|xargs echo -n)
         sed -i 's/^exclude=.*/exclude='"${result}"'/' ${yum_conf_file}
     else
         # shellcheck disable=SC2016
-        sed -i '$aexclude=openssh openssh-clients' ${yum_conf_file}
+        sed -i '$aexclude=openssh openssh-clients openssh-server' ${yum_conf_file}
     fi
+}
+
+show_host_key(){
+    [ -f /etc/ssh/ssh_host_ed25519_key.pub ] && cat /etc/ssh/ssh_host_ed25519_key.pub
+    [ -x /usr/bin/ssh-keygen ] && ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
 }
 
 install_openssh(){
@@ -513,7 +518,7 @@ install_openssh(){
     modify_ssh_file_permission
     sshd_init install
     kill_sshd_main_process
-    sshd_init start && ssh -V && sshd -V
+    sshd_init start && ssh -V && sshd -V && show_host_key
 }
 
 pre_clean_tmp(){
