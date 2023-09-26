@@ -1,7 +1,7 @@
 #!/bin/bash
-zlib_ver="zlib-1.2.13"
-openssl_ver="openssl-3.0.10"
-nghttp2_ver="nghttp2-1.54.0"
+zlib_ver="zlib-1.3"
+openssl_ver="openssl-3.0.11"
+nghttp2_ver="nghttp2-1.56.0"
 curl_ver="curl-8.2.1"
 pycurl_ver="REL_7_43_0_5"
 
@@ -25,7 +25,7 @@ _sysVer(){
 
 os_ver=$(_sysVer)
 if [ "${os_ver}" != 8 ]; then
-    openssl_ver="openssl-1.1.1v"
+    openssl_ver="openssl-1.1.1w"
 fi
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
@@ -159,7 +159,6 @@ build_nghttp2(){
     ver_num=${nghttp2_ver:8:6}
     declare -ra url=(
         "https://github.com/nghttp2/nghttp2/releases/download/v${ver_num}/${nghttp2_ver}.tar.gz"
-        "https://pan.0db.org:65000/${nghttp2_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${nghttp2_ver}.tar.gz && cd ${nghttp2_ver} && chmod 744 configure;} || exit 1
     ./configure --prefix=/tmp/nghttp2-static --enable-lib-only --enable-shared=no
@@ -172,7 +171,6 @@ install_pycurl(){
     cd /tmp || exit 1
     declare -ra url=(
         "https://github.com/pycurl/pycurl/archive/refs/tags/${pycurl_ver}.tar.gz"
-        "https://pan.0db.org:65000/${pycurl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${pycurl_ver}.tar.gz && cd pycurl-${pycurl_ver};} || exit 1
     /usr/bin/python setup.py docstrings && /usr/bin/python setup.py install --openssl-dir=/tmp/openssl-static && return
@@ -188,7 +186,6 @@ install_curl(){
     fi
     declare -ra url=(
         "https://curl.se/download/${curl_ver}.tar.gz"
-        "https://pan.0db.org:65000/${curl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${curl_ver}.tar.gz && cd ${curl_ver} && chmod 744 configure;} || exit 1
     export PKG_CONFIG_PATH=/tmp/zlib-static/lib/pkgconfig:/tmp/nghttp2-static/lib/pkgconfig
@@ -243,7 +240,6 @@ update_ca_certificates(){
         cd /tmp || exit 1
         declare -ra ca_url=(
             "http://dl.marmotte.net/rpms/redhat/el6/x86_64/ca-certificates-2021.2.50-65.1.ex1.el6_10/ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch.rpm"
-            "https://pan.0db.org:65000/ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch.rpm"
         )
         rpm -q ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch && return
         { _download "${ca_url[@]}" && rpm -vhU /tmp/ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch.rpm;} || ca_certificates_flag=1
