@@ -534,9 +534,10 @@ pre_clean_tmp(){
 
 test_curl(){
     local http_code
-    echo "Test url: https://1.0.0.1/"
-    http_code=$(curl -sI -o /dev/null -w '%{http_code}' https://1.0.0.1/)
-    [ "${http_code}" != 200 ] && { curl -I https://1.0.0.1/; echo "curl is not available"; exit 1;}
+    local url="https://1.0.0.1/media/manifest.json"
+    echo "Test url: ${url}"
+    http_code=$(curl -sI -o /dev/null -w '%{http_code}' ${url})
+    [ "${http_code}" != 200 ] && { curl -I ${url}; echo "curl is not available"; exit 1;}
 }
 
 # Get the current sshd port, using the first value.If the current sshd port is not available then the default port is used
