@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o pipefail
 
-openssh_ver="openssh-9.4p1"
+openssh_ver="openssh-9.5p1"
 openssl_ver="openssl-3.0.11"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
@@ -344,8 +344,11 @@ modify_sshdconfig(){
 }
 
 modify_selinux(){
-    sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
-    setenforce 0
+    if [ "$(getenforce)" = "Enforcing" ]; then
+        sed -i 's/SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
+        setenforce 0
+        echo "The current state of selinux has been modified to $(getenforce)"
+    fi
 }
 
 generate_host_key(){
@@ -364,6 +367,12 @@ modify_ssh_file_permission(){
     else
         echo "/etc/ssh directory not found"
         exit 1
+    fi
+    if [ -d /root/.ssh ]; then
+        chown root:root -R /root/.ssh
+        chmod 700 /root/.ssh
+        [ -f /root/.ssh/authorized_keys ] && chmod 644 /root/.ssh/authorized_keys
+        [ -f /root/.ssh/known_hosts ] && chmod 644 /root/.ssh/known_hosts
     fi
 }
 
