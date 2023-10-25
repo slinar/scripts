@@ -1,7 +1,7 @@
 #!/bin/bash
 libressl_ver="libressl-3.7.3"
 openssl_ver="openssl-3.0.11"
-nginx_ver="nginx-1.25.2"
+nginx_ver="nginx-1.25.3"
 fancyindex_ver="ngx-fancyindex-0.5.2"
 pcre2_ver="pcre2-10.42"
 zlib_ver="zlib-1.3"
@@ -174,6 +174,7 @@ list_objs(){
 }
 
 echo
+echo "libressl     : ${libressl_ver}"
 echo "openssl      : ${openssl_ver}"
 echo "nginx        : ${nginx_ver}"
 echo "fancyindex   : ${fancyindex_ver}"
