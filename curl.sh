@@ -258,7 +258,7 @@ initializing_build_environment(){
     if [ "${os_ver}" != 8 ];then
         yum -y install nss-tools python-devel curl libcurl python-pycurl || exit 1
     fi
-    export CFLAGS="-fPIC"
+    export CFLAGS="-fPIC -O3"
 }
 
 echo "-------------------------------------------"
