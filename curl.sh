@@ -133,7 +133,6 @@ build_zlib(){
     cd /tmp || exit 1
     declare -ra url=(
         "https://zlib.net/${zlib_ver}.tar.gz"
-        "https://pan.0db.org:65000/${zlib_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${zlib_ver}.tar.gz && cd ${zlib_ver} && chmod 744 configure;} || exit 1
     ./configure --prefix=/tmp/zlib-static --static || exit 1
