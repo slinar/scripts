@@ -1,6 +1,6 @@
 #!/bin/bash
 zlib_ver="zlib-1.3"
-openssl_ver="openssl-3.0.12"
+openssl_ver="openssl-3.0.13"
 nghttp2_ver="nghttp2-1.58.0"
 curl_ver="curl-8.4.0"
 pycurl_ver="REL_7_43_0_5"

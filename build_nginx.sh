@@ -181,7 +181,6 @@ echo "fancyindex   : ${fancyindex_ver}"
 echo "zlib         : ${zlib_ver} "
 echo "pcre2        : ${pcre2_ver}"
 echo
-echo 'You can execute "nginx.sh index" and install the fancyindex module separately'
 read -r -n 1 -p "Do you want to continue? [y/n]" input
 case $input in
     "y")
