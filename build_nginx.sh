@@ -1,10 +1,10 @@
 #!/bin/bash
 libressl_ver="libressl-3.8.2"
-openssl_ver="openssl-3.0.12"
-nginx_ver="nginx-1.25.3"
+openssl_ver="openssl-3.0.13"
+nginx_ver="nginx-1.25.4"
 fancyindex_ver="ngx-fancyindex-0.5.2"
 pcre2_ver="pcre2-10.42"
-zlib_ver="zlib-1.3"
+zlib_ver="zlib-1.3.1"
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
 _download(){
