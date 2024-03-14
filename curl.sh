@@ -1,8 +1,8 @@
 #!/bin/bash
-zlib_ver="zlib-1.3"
+zlib_ver="zlib-1.3.1"
 openssl_ver="openssl-3.0.13"
-nghttp2_ver="nghttp2-1.58.0"
-curl_ver="curl-8.4.0"
+nghttp2_ver="nghttp2-1.59.0"
+curl_ver="curl-8.6.0"
 pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){
@@ -257,7 +257,7 @@ initializing_build_environment(){
     if [ "${os_ver}" != 8 ];then
         yum -y install nss-tools python-devel curl libcurl python-pycurl || exit 1
     fi
-    export CFLAGS="-fPIC -O3"
+    export CFLAGS="-fPIC -O2"
 }
 
 echo "-------------------------------------------"
@@ -271,7 +271,6 @@ read -r -n 1 -p "Do you want to continue? [y/n]" input
 case $input in
     "y")
         echo
-        _sysVer
         _checkPrivilege
         check_yum
         initializing_build_environment

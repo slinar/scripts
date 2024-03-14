@@ -139,7 +139,7 @@ configure_nginx(){
     --with-stream_ssl_preread_module \
     --with-zlib=/tmp/${zlib_ver} \
     --with-pcre=/tmp/${pcre2_ver} \
-    --with-cc-opt='-O3 -pipe -Wall -fPIC -I/tmp/libressl-static/include' \
+    --with-cc-opt='-O2 -pipe -Wall -fPIC -I/tmp/libressl-static/include' \
     --with-ld-opt="-L/tmp/libressl-static/lib" \
     || { echo "configure ${nginx_ver} failed!";exit 1;}
 }
