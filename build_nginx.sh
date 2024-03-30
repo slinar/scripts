@@ -1,5 +1,5 @@
 #!/bin/bash
-libressl_ver="libressl-3.8.2"
+libressl_ver="libressl-3.9.1"
 openssl_ver="openssl-3.0.13"
 nginx_ver="nginx-1.25.4"
 fancyindex_ver="ngx-fancyindex-0.5.2"
