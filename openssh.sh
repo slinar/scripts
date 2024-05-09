@@ -2,7 +2,7 @@
 set -o pipefail
 
 openssh_ver="openssh-9.7p1"
-openssl_ver="openssl-3.0.13"
+openssl_ver="openssl-3.2.1"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 use_default_config=yes
@@ -153,7 +153,7 @@ check_yum(){
 build_openssl(){
     [ "${without_openssl}" = yes ] && return
     cd /tmp || exit 1
-    { _download "${openssl_url[@]}" && tar -zxf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
+    { _download "${openssl_url[@]}" && tar -axf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
     ./config --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl -fPIC no-shared no-threads no-weak-ssl-ciphers \
     || { echo "Failed to config openssl";exit 1;}
     make && make install_sw && return
@@ -453,7 +453,7 @@ uninstall_old_openssh(){
 
 download_openssh(){
     cd /tmp || exit 1
-    { _download "${openssh_url[@]}" && tar -zxf ${openssh_ver}.tar.gz && cd ${openssh_ver} && chmod 744 configure;} || exit 1
+    { _download "${openssh_url[@]}" && tar -axf ${openssh_ver}.tar.gz && cd ${openssh_ver} && chmod 744 configure;} || exit 1
 }
 
 kill_sshd_main_process(){
@@ -542,11 +542,7 @@ pre_clean_tmp(){
 }
 
 test_curl(){
-    local http_code
-    local url="https://1.0.0.1/media/manifest.json"
-    echo "Test url: ${url}"
-    http_code=$(curl -sI -o /dev/null -w '%{http_code}' ${url})
-    [ "${http_code}" != 200 ] && { curl -I ${url}; echo "curl is not available"; exit 1;}
+    [ -x "$(which --skip-alias curl)" ] || exit 1
 }
 
 # Get the current sshd port, using the first value.If the current sshd port is not available then the default port is used
