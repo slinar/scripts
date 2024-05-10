@@ -1,7 +1,7 @@
 #!/bin/bash
 zlib_ver="zlib-1.3.1"
 openssl_ver="openssl-3.2.1"
-nghttp2_ver="nghttp2-1.60.0"
+nghttp2_ver="nghttp2-1.59.0"
 curl_ver="curl-8.7.1"
 pycurl_ver="REL_7_43_0_5"
 
@@ -55,7 +55,7 @@ _download(){
                 rm -f "${fileName}"
             fi
             echo "Downloading ${fileName} from ${url}"
-            curl --continue-at - --speed-limit 10240 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
+            curl --continue-at - --speed-limit 1024 --speed-time 5 --retry 3 --progress-bar --location "${url}" -o "${fileName}" && tar ${tarOptions} "${tarFileName}" -O >/dev/null && return 0
             echo "Failed to download ${fileName} or test ${fileName}, try the next URL or return"
             rm -f "${fileName}"
         fi
