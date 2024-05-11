@@ -539,11 +539,6 @@ pre_clean_tmp(){
     rm -rf /tmp/${openssl_ver}
     rm -rf /tmp/${openssh_ver}
     rm -rf /tmp/openssl-static
-    if [ "${os_ver}" != 6 ]; then
-        journalctl --flush
-        journalctl --rotate
-        journalctl --quiet --vacuum-time=1months
-    fi
 }
 
 test_curl(){
