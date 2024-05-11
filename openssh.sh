@@ -40,13 +40,14 @@ _get_os_version(){
     local vv
     v=$(uname -r|awk -F "el" '{print $2}')
     vv=${v:0:1}
-    if [[ ${vv} = "8" || ${vv} = "7" || ${vv} = "6" ]]; then
+    if [[ ${vv} = "9" || ${vv} = "8" || ${vv} = "7" || ${vv} = "6" ]]; then
         echo -n "${vv}"
         return
     fi
     exit 2
 }
 
+_get_os_version &> /dev/null
 os_ver=$(_get_os_version)
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
