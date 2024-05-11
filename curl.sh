@@ -167,14 +167,15 @@ build_nghttp2(){
 }
 
 install_pycurl(){
-    [ "${os_ver}" = 8 ] && return
-    cd /tmp || exit 1
-    declare -ra url=(
-        "https://github.com/pycurl/pycurl/archive/refs/tags/${pycurl_ver}.tar.gz"
-    )
-    { _download "${url[@]}" && tar -axf ${pycurl_ver}.tar.gz && cd pycurl-${pycurl_ver};} || exit 1
-    /usr/bin/python setup.py docstrings && /usr/bin/python setup.py install --openssl-dir=/tmp/openssl-static && return
-    exit 1
+    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+        cd /tmp || exit 1
+        declare -ra url=(
+            "https://github.com/pycurl/pycurl/archive/refs/tags/${pycurl_ver}.tar.gz"
+        )
+        { _download "${url[@]}" && tar -axf ${pycurl_ver}.tar.gz && cd pycurl-${pycurl_ver};} || exit 1
+        /usr/bin/python setup.py docstrings && /usr/bin/python setup.py install --openssl-dir=/tmp/openssl-static && return
+        exit 1
+    fi
 }
 
 install_curl(){
