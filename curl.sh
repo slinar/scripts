@@ -11,20 +11,21 @@ _checkPrivilege(){
     exit 1
 }
 
-_sysVer(){
+_get_os_version(){
     local v
     local vv
     v=$(uname -r|awk -F "el" '{print $2}')
     vv=${v:0:1}
-    if [[ ${vv} = "8" || ${vv} = "7" || ${vv} = "6" ]]; then
+    if [[ ${vv} = "9" || ${vv} = "8" || ${vv} = "7" || ${vv} = "6" ]]; then
         echo -n "${vv}"
         return
     fi
     exit 2
 }
 
-os_ver=$(_sysVer)
-if [ "${os_ver}" != 8 ]; then
+_get_os_version &> /dev/null
+os_ver=$(_get_os_version)
+if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
     openssl_ver="openssl-1.1.1w"
 fi
 
@@ -178,17 +179,12 @@ install_pycurl(){
 
 install_curl(){
     cd /tmp || exit 1
-    local brotli_opt
-    brotli_opt="--with-brotli"
-    if [ "${os_ver}" = 6 ];then
-        brotli_opt="--without-brotli"
-    fi
     declare -ra url=(
         "https://curl.se/download/${curl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${curl_ver}.tar.gz && cd ${curl_ver} && chmod 744 configure;} || exit 1
     export PKG_CONFIG_PATH=/tmp/zlib-static/lib/pkgconfig:/tmp/nghttp2-static/lib/pkgconfig
-    ./configure --prefix=/usr --libdir=/usr/lib64 --enable-optimize --with-ca-bundle=/etc/pki/tls/certs/ca-bundle.crt --with-ssl=/tmp/openssl-static "${brotli_opt}" --with-libidn2 --without-libpsl || exit 1
+    ./configure --prefix=/usr --libdir=/usr/lib64 --enable-optimize --with-ca-bundle=/etc/pki/tls/certs/ca-bundle.crt --with-ssl=/tmp/openssl-static || exit 1
     make && make install && return
     exit 1
 }
@@ -246,17 +242,11 @@ update_ca_certificates(){
 }
 
 initializing_build_environment(){
-    yum -y install gcc gcc-c++ perl perl-IPC-Cmd make ca-certificates libidn2-devel || exit 1
-    if [ "${os_ver}" = 8 ];then
-        yum -y install brotli-devel || exit 1
-    fi
-    if [ "${os_ver}" = 7 ];then
-        yum -y install epel-release || exit 1
-        yum -y install brotli-devel || exit 1
-    fi
-    if [ "${os_ver}" != 8 ];then
+    yum -y install gcc gcc-c++ perl perl-IPC-Cmd make ca-certificates || exit 1
+    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ];then
         yum -y install nss-tools python-devel curl libcurl python-pycurl || exit 1
     fi
+    yum -y install brotli-devel libidn2-devel libpsl-devel
     export CFLAGS="-fPIC -O2"
 }
 
