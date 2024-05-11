@@ -325,6 +325,8 @@ modify_sshd_pam(){
         modify_sshd_pam_7
     elif [ "${os_ver}" = 8 ];then
         modify_sshd_pam_8
+    elif [ "${os_ver}" = 9 ];then
+        modify_sshd_pam_8
     fi
     chown root:root /etc/pam.d/sshd
     chmod 644 /etc/pam.d/sshd
@@ -493,7 +495,9 @@ select_config(){
 exclude_openssh(){
     local yum_conf_file
     yum_conf_file=/etc/yum.conf
-    [ "${os_ver}" = 8 ] && yum_conf_file=/etc/dnf/dnf.conf
+    if [ "${os_ver}" = 8 ] || [ "${os_ver}" = 9 ]; then
+        yum_conf_file=/etc/dnf/dnf.conf
+    fi
     echo "Exclude openssh, openssh-clients, openssh-server from ${yum_conf_file}"
     if grep -q '^exclude=.*' ${yum_conf_file}; then
         local result
@@ -535,7 +539,7 @@ pre_clean_tmp(){
     rm -rf /tmp/${openssl_ver}
     rm -rf /tmp/${openssh_ver}
     rm -rf /tmp/openssl-static
-    if [[ ${os_ver} = "7" || ${os_ver} = "8" ]]; then
+    if [ "${os_ver}" != 6 ]; then
         journalctl --flush
         journalctl --rotate
         journalctl --quiet --vacuum-time=1months
