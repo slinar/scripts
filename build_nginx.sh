@@ -1,5 +1,5 @@
 #!/bin/bash
-libressl_ver="libressl-3.9.1"
+libressl_ver="libressl-3.9.2"
 openssl_ver="openssl-3.0.13"
 nginx_ver="nginx-1.26.0"
 fancyindex_ver="ngx-fancyindex-0.5.2"
@@ -85,7 +85,7 @@ build_fancyindex(){
     )
     { _download "${url[@]}" && tar -axf ${fancyindex_ver}.tar.xz && cd ${fancyindex_ver};} || exit 1
     cd /tmp/${nginx_ver} || exit 1
-    ./configure --with-compat --add-dynamic-module=/tmp/${fancyindex_ver} || exit 1
+    ./configure --with-compat --with-pcre=/tmp/${pcre2_ver} --add-dynamic-module=/tmp/${fancyindex_ver} || exit 1
     make modules || exit 1
 }
 
@@ -96,7 +96,7 @@ build_dav_ext(){
     )
     { _download "${url[@]}" && tar -axf v3.0.0.tar.gz && cd nginx-dav-ext-module-3.0.0;} || exit 1
     cd /tmp/${nginx_ver} || exit 1
-    ./configure --with-compat --with-http_dav_module --add-dynamic-module=/tmp/nginx-dav-ext-module-3.0.0 || exit 1
+    ./configure --with-compat --with-pcre=/tmp/${pcre2_ver} --with-http_dav_module --add-dynamic-module=/tmp/nginx-dav-ext-module-3.0.0 || exit 1
     make modules || exit 1
 }
 

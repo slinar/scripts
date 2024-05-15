@@ -245,7 +245,7 @@ update_ca_certificates(){
 initializing_build_environment(){
     yum -y install gcc gcc-c++ perl perl-IPC-Cmd make ca-certificates || exit 1
     if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ];then
-        yum -y install nss-tools python-devel curl libcurl python-pycurl || exit 1
+        yum -y install nss python-devel curl libcurl python-pycurl || exit 1
     fi
     yum -y install brotli-devel libidn2-devel libpsl-devel
     export CFLAGS="-fPIC -O2"
