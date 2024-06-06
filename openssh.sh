@@ -2,7 +2,7 @@
 set -o pipefail
 
 openssh_ver="openssh-9.7p1"
-openssl_ver="openssl-3.2.1"
+openssl_ver="openssl-3.2.2"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 use_default_config=yes

@@ -1,8 +1,8 @@
 #!/bin/bash
 zlib_ver="zlib-1.3.1"
-openssl_ver="openssl-3.2.1"
+openssl_ver="openssl-3.2.2"
 nghttp2_ver="nghttp2-1.59.0"
-curl_ver="curl-8.7.1"
+curl_ver="curl-8.8.0"
 pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){

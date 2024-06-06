@@ -1,7 +1,7 @@
 #!/bin/bash
 libressl_ver="libressl-3.9.2"
 openssl_ver="openssl-3.0.13"
-nginx_ver="nginx-1.26.0"
+nginx_ver="nginx-1.26.1"
 fancyindex_ver="ngx-fancyindex-0.5.2"
 pcre2_ver="pcre2-10.43"
 zlib_ver="zlib-1.3.1"
