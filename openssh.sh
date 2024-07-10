@@ -1,8 +1,8 @@
 #!/bin/bash
 set -o pipefail
 
-openssh_ver="openssh-9.7p1"
-openssl_ver="openssl-3.2.2"
+openssh_ver="openssh-9.8p1"
+openssl_ver="openssl-3.0.14"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
 use_default_config=yes
