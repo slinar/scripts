@@ -37,8 +37,8 @@ _download(){
     local tarOptions
     declare -r urlReg='^(http|https|ftp)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
     declare -r fileNameReg='(\.tar\.gz|\.tgz|\.tar\.bz2|\.tar\.xz)$'
-    [ ! -x /usr/bin/xz ] && yum -y install xz
-    [ ! -x /usr/bin/tar ] && yum -y install tar
+    [ -x /usr/bin/xz ] || yum -y install xz
+    [ -x /usr/bin/tar ] || [ -x /bin/tar ] || yum -y install tar
     for url in "$@"; do
         if [[ ${url} =~ ${urlReg} ]]; then
             fileName=$(echo "${url}"|awk -F / '{print $NF}')
@@ -233,12 +233,11 @@ exclude_curl_in_yum(){
 
 update_ca_certificates(){
     if [ "${os_ver}" = 6 ]; then
-        cd /tmp || exit 1
+        cd /etc/pki/tls/certs || exit 1
         declare -ra ca_url=(
-            "http://dl.marmotte.net/rpms/redhat/el6/x86_64/ca-certificates-2021.2.50-65.1.ex1.el6_10/ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch.rpm"
+            "https://curl.se/ca/cacert.pem"
         )
-        rpm -q ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch && return
-        { _download "${ca_url[@]}" && rpm -vhU /tmp/ca-certificates-2021.2.50-65.1.ex1.el6_10.noarch.rpm;} || ca_certificates_flag=1
+        { _download "${ca_url[@]}" && rm -f ca-bundle.crt && mv -f cacert.pem ca-bundle.crt;} || ca_certificates_flag=1
     fi
 }
 
