@@ -14,8 +14,8 @@ _download(){
     local tarOptions
     declare -r urlReg='^(http|https|ftp)://[a-zA-Z0-9\.-]{1,62}\.[a-zA-Z]{1,62}(:[0-9]{1,5})?/.*'
     declare -r fileNameReg='(\.tar\.gz|\.tgz|\.tar\.bz2|\.tar\.xz)$'
-    [ ! -x /usr/bin/xz ] && yum -y install xz
-    [ ! -x /usr/bin/tar ] && yum -y install tar
+    [ -x /usr/bin/xz ] || yum -y install xz
+    [ -x /usr/bin/tar ] || [ -x /bin/tar ] || yum -y install tar
     for url in "$@"; do
         if [[ ${url} =~ ${urlReg} ]]; then
             fileName=$(echo "${url}"|awk -F / '{print $NF}')
