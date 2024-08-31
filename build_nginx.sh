@@ -1,9 +1,9 @@
 #!/bin/bash
 libressl_ver="libressl-3.9.2"
-openssl_ver="openssl-3.0.13"
-nginx_ver="nginx-1.26.1"
+openssl_ver="openssl-3.0.14"
+nginx_ver="nginx-1.26.2"
 fancyindex_ver="ngx-fancyindex-0.5.2"
-pcre2_ver="pcre2-10.43"
+pcre2_ver="pcre2-10.44"
 zlib_ver="zlib-1.3.1"
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
@@ -97,6 +97,17 @@ build_dav_ext(){
     { _download "${url[@]}" && tar -axf v3.0.0.tar.gz && cd nginx-dav-ext-module-3.0.0;} || exit 1
     cd /tmp/${nginx_ver} || exit 1
     ./configure --with-compat --with-pcre=/tmp/${pcre2_ver} --with-http_dav_module --add-dynamic-module=/tmp/nginx-dav-ext-module-3.0.0 || exit 1
+    make modules || exit 1
+}
+
+build_ngx_headers_more(){
+    cd /tmp || exit 1
+    declare -a url=(
+        "https://github.com/openresty/headers-more-nginx-module/archive/refs/tags/v0.37.tar.gz"
+    )
+    { _download "${url[@]}" && tar -axf v0.37.tar.gz && cd headers-more-nginx-module-0.37;} || exit 1
+    cd /tmp/${nginx_ver} || exit 1
+    ./configure --with-compat --with-pcre=/tmp/${pcre2_ver} --with-http_dav_module --add-dynamic-module=/tmp/headers-more-nginx-module-0.37 || exit 1
     make modules || exit 1
 }
 
@@ -194,6 +205,7 @@ case $input in
         build_nginx
         build_fancyindex
         build_dav_ext
+        build_ngx_headers_more
         list_objs
         echo 'completed'
         ;;
