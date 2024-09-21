@@ -2,7 +2,7 @@
 zlib_ver="zlib-1.3.1"
 openssl_ver="openssl-3.3.2"
 nghttp2_ver="nghttp2-1.63.0"
-curl_ver="curl-8.9.1"
+curl_ver="curl-8.10.1"
 pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){

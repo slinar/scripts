@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o pipefail
 
-openssh_ver="openssh-9.8p1"
+openssh_ver="openssh-9.9p1"
 openssl_ver="openssl-3.0.15"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no"
@@ -15,7 +15,6 @@ without_openssl=no
 
 # Download url
 declare -ra openssl_url=(
-    "https://www.openssl.org/source/${openssl_ver}.tar.gz"
     "https://github.com/openssl/openssl/releases/download/${openssl_ver}/${openssl_ver}.tar.gz"
 )
 
