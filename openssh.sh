@@ -203,7 +203,7 @@ Documentation=man:sshd(8) man:sshd_config(5)
 After=network.target
 
 [Service]
-Type=simple
+Type=notify
 EnvironmentFile=-/etc/crypto-policies/back-ends/opensshserver.config
 EnvironmentFile=-/etc/sysconfig/sshd
 ExecStartPre=/usr/bin/ssh-keygen -A
