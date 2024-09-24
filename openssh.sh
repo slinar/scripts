@@ -599,7 +599,7 @@ case $input in
         echo
         check_yum
         yum -y install gcc tar perl perl-IPC-Cmd make pam-devel ca-certificates || exit 1
-        yum -y update nss-tools
+        rpm --quiet -q nss-tools && yum -y update nss-tools
         test_curl
         pre_clean_tmp
         build_openssl
