@@ -232,11 +232,11 @@ exclude_curl_in_yum(){
 }
 
 update_ca_certificates(){
-    if [ "${os_ver}" = 6 ]; then
+    declare -ra ca_url=(
+        "https://curl.se/ca/cacert.pem"
+    )
+    if [ "${os_ver}" = 6 ] && [ $(($(date +%s) - $(stat --format="%Y" /etc/pki/tls/certs/ca-bundle.crt))) -gt 63072000 ]; then
         cd /etc/pki/tls/certs || exit 1
-        declare -ra ca_url=(
-            "https://curl.se/ca/cacert.pem"
-        )
         { _download "${ca_url[@]}" && rm -f ca-bundle.crt && mv -f cacert.pem ca-bundle.crt;} || ca_certificates_flag=1
     fi
 }
@@ -264,8 +264,8 @@ case $input in
         _checkPrivilege
         check_yum
         initializing_build_environment
-        update_ca_certificates
         check_ca
+        update_ca_certificates
         clean_tmp
         build_zlib
         build_openssl
