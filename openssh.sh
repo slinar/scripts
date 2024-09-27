@@ -511,8 +511,11 @@ exclude_openssh(){
 }
 
 show_host_key(){
-    [ -f /etc/ssh/ssh_host_ed25519_key.pub ] && cat /etc/ssh/ssh_host_ed25519_key.pub
-    [ -x /usr/bin/ssh-keygen ] && ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+    if [ -x /usr/bin/ssh-keygen ]; then
+        ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+        ssh-keygen -lf /etc/ssh/ssh_host_ecdsa_key.pub
+        ssh-keygen -lf /etc/ssh/ssh_host_rsa_key.pub
+    fi
 }
 
 install_openssh(){
