@@ -549,7 +549,7 @@ test_curl(){
 
 # Get the current sshd port, using the first value.If the current sshd port is not available then the default port is used
 get_current_sshd_port(){
-    sshd_port=$(ss -lnpt|grep sshd|awk '{print $4}'|awk -F : '{print $NF}'|head -1)
+    sshd_port=$(ss -lnpt|grep sshd|awk '{print $(NF-2)}'|awk -F : '{print $NF}'|head -1)
     [ -z "${sshd_port}" ] && sshd_port="22"
 }
 
@@ -601,7 +601,7 @@ case $input in
     "y")
         echo
         check_yum
-        yum -y install gcc tar perl perl-IPC-Cmd make pam-devel ca-certificates iproute || exit 1
+        yum -y install gcc tar perl perl-IPC-Cmd make pam-devel ca-certificates || exit 1
         rpm --quiet -q nss-tools && yum -y update nss-tools
         test_curl
         pre_clean_tmp
