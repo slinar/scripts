@@ -177,10 +177,6 @@ install_curl(){
 
 show_curl_ver(){
     curl --version || echo 'curl is not installed correctly!'
-    if [ "${ca_certificates_flag}" = 1 ]; then
-        echo "ca-certificates may need to be updated"
-        rpm -q ca-certificates
-    fi
     echo "completed"
 }
 
@@ -218,10 +214,15 @@ exclude_curl_in_yum(){
 
 update_ca_file(){
     if [ "${os_ver}" = 6 ]; then
-        declare -r ca_url="https://curl.se/ca/cacert.pem"
-        if [ $(($(date +%s) - $(stat --format="%Y" /etc/pki/tls/certs/ca-bundle.crt))) -gt 63072000 ]; then
+        cd /tmp || exit 1
+        local ca_path
+        local ca_url="https://curl.se/ca/cacert.pem"
+        ca_path=$(readlink -e /etc/pki/tls/certs/ca-bundle.crt)
+        [ -z "${ca_path}" ] && echo "ca_path is empty" && exit 1
+        [ ! -f "${ca_path}" ] && echo "${ca_path} is not a file" && exit 1
+        if [ $(($(date +%s) - $(stat --format="%Y" "${ca_path}"))) -gt 63072000 ]; then
             echo "Downloading cacert.pem from ${ca_url}"
-            curl -L -k --progress-bar -o /etc/pki/tls/certs/ca-bundle.crt "${ca_url}" || ca_certificates_flag=1
+            curl --continue-at - --fail --speed-limit 1024 --speed-time 5 --retry 3 -k --progress-bar -o ca_file_tmp "${ca_url}" && mv -f ca_file_tmp "${ca_path}"
         fi
     fi
 }
