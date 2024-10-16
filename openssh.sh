@@ -136,7 +136,7 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
 EOF
 }
 
-check_yum(){
+check_yum_repositories(){
     [ "${os_ver}" != 6 ] && return
     [ -f /etc/yum.repos.d/CentOS-Base.repo ] && yum makecache && return
     mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak &> /dev/null
@@ -602,7 +602,7 @@ read -r -n 1 -p "Please confirm the above information. do you want to continue? 
 case $input in
     "y")
         echo
-        check_yum
+        check_yum_repositories
         initializing_build_environment
         test_curl
         pre_clean_tmp

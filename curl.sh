@@ -116,7 +116,7 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
 EOF
 }
 
-check_yum(){
+check_yum_repositories(){
     if [ "${os_ver}" = 6 ]; then
         if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then
             yum makecache && yum -y update nss && return
@@ -196,7 +196,7 @@ show_curl_ver(){
     echo "completed"
 }
 
-check_ca(){
+check_ca_file(){
     readlink -e /etc/pki/tls/certs/ca-bundle.crt || { echo "/etc/pki/tls/certs/ca-bundle.crt not found"; exit 1;}
 }
 
@@ -228,7 +228,7 @@ exclude_curl_in_yum(){
     fi
 }
 
-update_ca_certificates(){
+update_ca_file(){
     if [ "${os_ver}" = 6 ]; then
         declare -r ca_url="https://curl.se/ca/cacert.pem"
         if [ $(($(date +%s) - $(stat --format="%Y" /etc/pki/tls/certs/ca-bundle.crt))) -gt 63072000 ]; then
@@ -260,9 +260,9 @@ case $input in
     "y")
         echo
         _checkPrivilege
-        check_yum
-        update_ca_certificates
-        check_ca
+        check_yum_repositories
+        update_ca_file
+        check_ca_file
         initializing_build_environment
         clean_tmp
         build_zlib
