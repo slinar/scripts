@@ -117,12 +117,14 @@ EOF
 }
 
 check_yum(){
-    [ "${os_ver}" != 6 ] && return
-    [ -f /etc/yum.repos.d/CentOS-Base.repo ] && yum makecache && return
-    mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
-    write_CentOS_Base
-    yum clean all && yum makecache && return
-    exit 1
+    if [ "${os_ver}" = 6 ]; then
+        if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then
+            yum makecache && yum -y update nss && return
+        fi
+        mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
+        write_CentOS_Base
+        yum clean all && yum makecache && yum -y update nss || exit 1
+    fi
 }
 
 build_zlib(){
@@ -227,19 +229,19 @@ exclude_curl_in_yum(){
 }
 
 update_ca_certificates(){
-    declare -ra ca_url=(
-        "https://curl.se/ca/cacert.pem"
-    )
-    if [ "${os_ver}" = 6 ] && [ $(($(date +%s) - $(stat --format="%Y" /etc/pki/tls/certs/ca-bundle.crt))) -gt 63072000 ]; then
-        cd /etc/pki/tls/certs || exit 1
-        { _download "${ca_url[@]}" && rm -f ca-bundle.crt && mv -f cacert.pem ca-bundle.crt;} || ca_certificates_flag=1
+    if [ "${os_ver}" = 6 ]; then
+        declare -r ca_url="https://curl.se/ca/cacert.pem"
+        if [ $(($(date +%s) - $(stat --format="%Y" /etc/pki/tls/certs/ca-bundle.crt))) -gt 63072000 ]; then
+            echo "Downloading cacert.pem from ${ca_url}"
+            curl -L -k --progress-bar -o /etc/pki/tls/certs/ca-bundle.crt "${ca_url}" || ca_certificates_flag=1
+        fi
     fi
 }
 
 initializing_build_environment(){
     yum -y install gcc gcc-c++ perl perl-IPC-Cmd make ca-certificates || exit 1
     if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ];then
-        yum -y install nss python-devel curl libcurl python-pycurl || exit 1
+        yum -y install python-devel curl libcurl python-pycurl || exit 1
     fi
     yum -y install brotli-devel libidn2-devel libpsl-devel
     export CFLAGS="-fPIC -O2"
@@ -251,6 +253,7 @@ echo "nghttp2 : ${nghttp2_ver}"
 echo "curl    : ${curl_ver}"
 echo "pycurl  : ${pycurl_ver}"
 echo "zlib    : ${zlib_ver}"
+echo "TIME    : $(date +"%Y-%m-%d %H:%M:%S %Z")"
 echo "-------------------------------------------"
 read -r -n 1 -p "Do you want to continue? [y/n]" input
 case $input in
@@ -258,9 +261,9 @@ case $input in
         echo
         _checkPrivilege
         check_yum
-        initializing_build_environment
-        check_ca
         update_ca_certificates
+        check_ca
+        initializing_build_environment
         clean_tmp
         build_zlib
         build_openssl
