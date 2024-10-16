@@ -548,6 +548,13 @@ get_current_sshd_port(){
     [[ ${sshd_port} =~ ^[0-9]+$ ]] || sshd_port="22"
 }
 
+initializing_build_environment(){
+    yum -y install gcc tar perl perl-IPC-Cmd make pam-devel ca-certificates || exit 1
+    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+        rpm --quiet -q nss && yum -y update nss
+    fi
+}
+
 _check_privilege
 get_current_sshd_port
 
@@ -596,8 +603,7 @@ case $input in
     "y")
         echo
         check_yum
-        yum -y install gcc tar perl perl-IPC-Cmd make pam-devel ca-certificates || exit 1
-        rpm --quiet -q nss-tools && yum -y update nss-tools
+        initializing_build_environment
         test_curl
         pre_clean_tmp
         build_openssl
