@@ -125,12 +125,14 @@ EOF
 }
 
 check_yum_repositories(){
-    [ "${os_ver}" != 6 ] && return
-    [ -f /etc/yum.repos.d/CentOS-Base.repo ] && yum makecache && return
-    mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak &> /dev/null
-    write_CentOS_Base
-    yum clean all && yum makecache && return
-    exit 1
+    if [ "${os_ver}" = 6 ]; then
+        if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then
+            yum makecache && yum -y update nss && return
+        fi
+        mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
+        write_CentOS_Base
+        yum clean all && yum makecache && yum -y update nss || exit 1
+    fi
 }
 
 build_openssl(){
