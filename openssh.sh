@@ -540,9 +540,6 @@ get_current_sshd_port(){
 
 initializing_build_environment(){
     yum -y install gcc tar perl perl-IPC-Cmd make pam-devel ca-certificates || exit 1
-    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
-        rpm --quiet -q nss && yum -y update nss
-    fi
 }
 
 _check_privilege
