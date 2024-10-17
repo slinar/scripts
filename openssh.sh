@@ -1,17 +1,17 @@
 #!/bin/bash
 set -o pipefail
 
-openssh_ver="openssh-9.9p1"
-openssl_ver="openssl-3.0.15"
+declare -r openssh_ver="openssh-9.9p1"
+declare -r openssl_ver="openssl-3.0.15"
 
-# Use default sshd_config. If you want to use your sshd_config, please set this to "no"
-use_default_config=yes
+# Use default sshd_config. If you want to use your sshd_config, please set this to "no" [yes/no]
+declare -r use_default_config="yes"
 
-# Enables PAM support
-pam=no
+# Enables PAM support [yes/no]
+declare -r pam="no"
 
-# Do not use openssl?
-without_openssl=no
+# Do not use openssl? [yes/no]
+declare -r without_openssl="no"
 
 # Download url
 declare -ra openssl_url=(
@@ -23,10 +23,6 @@ declare -ra openssh_url=(
     "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
     "https://mirror.edgecast.com/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
 )
-
-[[ "${use_default_config}" =~ yes|no ]] || { echo "The value of use_default_config is invalid";exit 1;}
-[[ "${pam}" =~ yes|no ]] || { echo "The value of pam is invalid";exit 1;}
-[[ "${without_openssl}" =~ yes|no ]] || { echo "The value of without_openssl is invalid";exit 1;}
 
 _check_privilege(){
     [ "$(id -u)" -eq 0 ] && return
@@ -45,9 +41,6 @@ _get_os_version(){
     fi
     exit 2
 }
-
-_get_os_version &> /dev/null
-os_ver=$(_get_os_version)
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
 _download(){
@@ -542,8 +535,15 @@ initializing_build_environment(){
     yum -y install gcc tar perl perl-IPC-Cmd make pam-devel ca-certificates || exit 1
 }
 
+init_os_ver(){
+    _get_os_version &> /dev/null
+    os_ver=$(_get_os_version)
+    readonly os_ver
+}
+
 _check_privilege
 get_current_sshd_port
+init_os_ver
 
 echo "-------------------------------------------"
 echo "openssl            : ${openssl_ver}"
@@ -552,6 +552,7 @@ echo "sshd_port          : ${sshd_port}"
 echo "pam                : ${pam}"
 echo "use_default_config : ${use_default_config}"
 echo "without_openssl    : ${without_openssl}"
+echo "os_ver             : ${os_ver}"
 echo "Backup             : /etc/pam.d/sshd /etc/pam.d/sshd_bak"
 echo "-------------------------------------------"
 
