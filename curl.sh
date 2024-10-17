@@ -1,9 +1,11 @@
 #!/bin/bash
-zlib_ver="zlib-1.3.1"
+set -o pipefail
+
+declare -r zlib_ver="zlib-1.3.1"
 openssl_ver="openssl-3.3.2"
-nghttp2_ver="nghttp2-1.63.0"
-curl_ver="curl-8.10.1"
-pycurl_ver="REL_7_43_0_5"
+declare -r nghttp2_ver="nghttp2-1.63.0"
+declare -r curl_ver="curl-8.10.1"
+declare -r pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){
     test "$(id -u)" -eq 0 && return
@@ -22,12 +24,6 @@ _get_os_version(){
     fi
     exit 2
 }
-
-_get_os_version &> /dev/null
-os_ver=$(_get_os_version)
-if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
-    openssl_ver="openssl-1.1.1w"
-fi
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
 _download(){
@@ -268,6 +264,14 @@ initializing_build_environment(){
     yum -y install brotli-devel libidn2-devel libpsl-devel
     export CFLAGS="-fPIC -O2"
 }
+
+_get_os_version &> /dev/null
+os_ver=$(_get_os_version)
+if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+    openssl_ver="openssl-1.1.1w"
+fi
+readonly os_ver
+readonly openssl_ver
 
 echo "-------------------------------------------"
 echo "openssl : ${openssl_ver}"
