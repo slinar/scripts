@@ -157,10 +157,15 @@ build_zlib(){
 
 build_openssl(){
     cd /tmp || exit 1
-    declare -ra url=(
-        "https://www.openssl.org/source/${openssl_ver}.tar.gz"
-        "https://github.com/openssl/openssl/releases/download/${openssl_ver}/${openssl_ver}.tar.gz"
-    )
+    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+        declare -ra url=(
+            "https://github.com/openssl/openssl/releases/download/OpenSSL_1_1_1w/openssl-1.1.1w.tar.gz"
+        )
+    else
+        declare -ra url=(
+            "https://github.com/openssl/openssl/releases/download/${openssl_ver}/${openssl_ver}.tar.gz"
+        )
+    fi
     { _download "${url[@]}" && tar -axf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
     ./config --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl -fPIC no-shared no-threads || exit 1
     make && make install_sw && return
@@ -199,7 +204,7 @@ install_curl(){
     )
     { _download "${url[@]}" && tar -axf ${curl_ver}.tar.gz && cd ${curl_ver} && chmod 744 configure;} || exit 1
     export PKG_CONFIG_PATH=/tmp/zlib-static/lib/pkgconfig:/tmp/nghttp2-static/lib/pkgconfig
-    ./configure --prefix=/usr --libdir=/usr/lib64 --enable-optimize --with-ca-bundle=/etc/pki/tls/certs/ca-bundle.crt --with-ssl=/tmp/openssl-static || exit 1
+    ./configure --prefix=/usr --libdir=/usr/lib64 --enable-optimize --with-ca-bundle=/etc/pki/tls/certs/ca-bundle.crt --with-ssl=/tmp/openssl-static --without-libpsl || exit 1
     make && make install && return
     exit 1
 }
@@ -261,7 +266,7 @@ initializing_build_environment(){
     if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ];then
         yum -y install python-devel curl libcurl python-pycurl nss || exit 1
     fi
-    yum -y install brotli-devel libidn2-devel libpsl-devel
+    yum -y install brotli-devel libidn2-devel
     export CFLAGS="-fPIC -O2"
 }
 
