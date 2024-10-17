@@ -279,6 +279,7 @@ echo "nghttp2 : ${nghttp2_ver}"
 echo "curl    : ${curl_ver}"
 echo "pycurl  : ${pycurl_ver}"
 echo "zlib    : ${zlib_ver}"
+echo "os_ver  : ${os_ver}"
 echo "TIME    : $(date +"%Y-%m-%d %H:%M:%S %Z")"
 echo "-------------------------------------------"
 read -r -n 1 -p "Do you want to continue? [y/n]" input
