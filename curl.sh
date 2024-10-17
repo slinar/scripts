@@ -262,7 +262,7 @@ update_ca_file(){
 }
 
 initializing_build_environment(){
-    yum -y install gcc gcc-c++ perl perl-IPC-Cmd make ca-certificates || exit 1
+    yum -y install gcc gcc-c++ perl perl-IPC-Cmd make ca-certificates pkgconfig || exit 1
     if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ];then
         yum -y install python-devel curl libcurl python-pycurl nss || exit 1
     fi
