@@ -1,10 +1,10 @@
 #!/bin/bash
-libressl_ver="libressl-3.9.2"
-openssl_ver="openssl-3.0.14"
-nginx_ver="nginx-1.26.2"
-fancyindex_ver="ngx-fancyindex-0.5.2"
-pcre2_ver="pcre2-10.44"
-zlib_ver="zlib-1.3.1"
+declare -r libressl_ver="libressl-4.0.0"
+declare -r openssl_ver="openssl-3.0.15"
+declare -r nginx_ver="nginx-1.26.2"
+declare -r fancyindex_ver="ngx-fancyindex-0.5.2"
+declare -r pcre2_ver="pcre2-10.44"
+declare -r zlib_ver="zlib-1.3.1"
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
 _download(){
@@ -197,7 +197,7 @@ case $input in
     "y")
         echo
         yum -y install gcc gcc-c++ perl perl-IPC-Cmd make libxslt-devel ca-certificates || exit 1
-        yum -y update nss-tools
+        yum -y update nss
         clean_tmp
         download_zlib
         download_pcre
