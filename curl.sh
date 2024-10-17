@@ -64,7 +64,7 @@ _download(){
     return 1
 }
 
-write_CentOS_Base(){
+write_CentOS_Base_6(){
     cat > /etc/yum.repos.d/CentOS-Base.repo<<"EOF"
 [base]
 name=CentOS-$releasever - Base
@@ -104,13 +104,46 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
 EOF
 }
 
+write_CentOS_Base_7(){
+    cat > /etc/yum.repos.d/CentOS-Base.repo<<"EOF"
+[base]
+name=CentOS-$releasever - Base
+baseurl=http://mirrors.aliyun.com/centos-vault/7.9.2009/os/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+#released updates 
+[updates]
+name=CentOS-$releasever - Updates
+baseurl=http://mirrors.aliyun.com/centos-vault/7.9.2009/updates/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+#additional packages that may be useful
+[extras]
+name=CentOS-$releasever - Extras
+baseurl=http://mirrors.aliyun.com/centos-vault/7.9.2009/extras/$basearch/
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+
+#additional packages that extend functionality of existing packages
+[centosplus]
+name=CentOS-$releasever - Plus
+baseurl=http://mirrors.aliyun.com/centos-vault/7.9.2009/centosplus/$basearch/
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+EOF
+}
+
 check_yum_repositories(){
-    if [ "${os_ver}" = 6 ]; then
+    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
         if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then
             yum makecache && return
         fi
         mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
-        write_CentOS_Base
+        [ "${os_ver}" = 6 ] && write_CentOS_Base_6
+        [ "${os_ver}" = 7 ] && write_CentOS_Base_7
         yum clean all && yum makecache || exit 1
     fi
 }
