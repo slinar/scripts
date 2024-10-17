@@ -152,12 +152,12 @@ EOF
 check_yum_repositories(){
     if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
         if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then
-            yum makecache && yum -y update nss && return
+            yum makecache && return
         fi
         mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
         [ "${os_ver}" = 6 ] && write_CentOS_Base_6
         [ "${os_ver}" = 7 ] && write_CentOS_Base_7
-        yum clean all && yum makecache && yum -y update nss || exit 1
+        yum clean all && yum makecache || exit 1
     fi
 }
 
@@ -566,6 +566,9 @@ get_current_sshd_port(){
 
 initializing_build_environment(){
     yum -y install gcc tar perl perl-IPC-Cmd make pam-devel ca-certificates || exit 1
+    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+        yum -y install nss
+    fi
 }
 
 init_os_ver(){

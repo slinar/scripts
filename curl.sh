@@ -107,11 +107,11 @@ EOF
 check_yum_repositories(){
     if [ "${os_ver}" = 6 ]; then
         if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then
-            yum makecache && yum -y update nss && return
+            yum makecache && return
         fi
         mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
         write_CentOS_Base
-        yum clean all && yum makecache && yum -y update nss || exit 1
+        yum clean all && yum makecache || exit 1
     fi
 }
 
@@ -230,7 +230,7 @@ update_ca_file(){
 initializing_build_environment(){
     yum -y install gcc gcc-c++ perl perl-IPC-Cmd make ca-certificates || exit 1
     if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ];then
-        yum -y install python-devel curl libcurl python-pycurl || exit 1
+        yum -y install python-devel curl libcurl python-pycurl nss || exit 1
     fi
     yum -y install brotli-devel libidn2-devel libpsl-devel
     export CFLAGS="-fPIC -O2"
@@ -250,9 +250,9 @@ case $input in
         echo
         _checkPrivilege
         check_yum_repositories
+        initializing_build_environment
         update_ca_file
         check_ca_file
-        initializing_build_environment
         clean_tmp
         build_zlib
         build_openssl
