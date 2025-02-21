@@ -352,6 +352,7 @@ modify_sshdconfig(){
     else
         sed -i 's/^[[:space:]#]*UsePAM[[:space:]]\+yes[[:space:]]*$/#UsePAM no/' /etc/ssh/sshd_config
     fi
+    sed -i 's/^[[:space:]#]*Compression[[:space:]]\+.*/Compression no/' /etc/ssh/sshd_config
     sed -i 's/^#\+[[:space:]]*ClientAliveInterval[[:space:]]\+.*/ClientAliveInterval 30/' /etc/ssh/sshd_config
     sed -i 's/^[[:space:]]*TCPKeepAlive[[:space:]]\+no[[:space:]]*$/#TCPKeepAlive yes/' /etc/ssh/sshd_config
 }
