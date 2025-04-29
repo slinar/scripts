@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o pipefail
 
-declare -r openssh_ver="openssh-9.9p2"
+declare -r openssh_ver="openssh-10.0p1"
 declare -r openssl_ver="openssl-3.0.16"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no" [yes/no]
@@ -19,8 +19,8 @@ declare -ra openssl_url=(
 )
 
 declare -ra openssh_url=(
-    "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
     "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
+    "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
     "https://mirror.edgecast.com/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
 )
 
