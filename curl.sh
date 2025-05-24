@@ -2,9 +2,9 @@
 set -o pipefail
 
 declare -r zlib_ver="zlib-1.3.1"
-openssl_ver="openssl-3.4.1"
-declare -r nghttp2_ver="nghttp2-1.64.0"
-declare -r curl_ver="curl-8.12.0"
+openssl_ver="openssl-3.0.16"
+declare -r nghttp2_ver="nghttp2-1.65.0"
+declare -r curl_ver="curl-8.13.0"
 declare -r pycurl_ver="REL_7_43_0_5"
 
 _checkPrivilege(){

@@ -1,5 +1,5 @@
 #!/bin/bash
-declare -r libressl_ver="libressl-4.0.0"
+declare -r libressl_ver="libressl-4.1.0"
 declare -r openssl_ver="openssl-3.0.16"
 declare -r nginx_ver="nginx-1.28.0"
 declare -r fancyindex_ver="ngx-fancyindex-0.5.2"
