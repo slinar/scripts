@@ -2,7 +2,6 @@
 declare -r libressl_ver="libressl-4.1.0"
 declare -r openssl_ver="openssl-3.0.16"
 declare -r nginx_ver="nginx-1.28.0"
-declare -r fancyindex_ver="ngx-fancyindex-0.5.2"
 declare -r pcre2_ver="pcre2-10.45"
 declare -r zlib_ver="zlib-1.3.1"
 
@@ -52,22 +51,19 @@ download_zlib(){
 download_openssl(){
     cd /tmp || exit 1
     declare -a url=(
-        "https://www.openssl.org/source/${openssl_ver}.tar.gz"
         "https://github.com/openssl/openssl/releases/download/${openssl_ver}/${openssl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
 }
 
-build_libressl(){
+download_libressl(){
     cd /tmp || exit 1
     declare -a url=(
-        "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"
         "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"
+        "https://ftp.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"
         "https://cdn.openbsd.org/pub/OpenBSD/LibreSSL/${libressl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${libressl_ver}.tar.gz && cd ${libressl_ver} && chmod 744 configure;} || exit 1
-    ./configure --prefix=/tmp/libressl-static --with-openssldir=/tmp/libressl-static/ssl --enable-shared=no || exit 1
-    make && make install || exit 1
 }
 
 download_pcre(){
@@ -78,36 +74,35 @@ download_pcre(){
     { _download "${url[@]}" && tar -axf ${pcre2_ver}.tar.gz && cd ${pcre2_ver} && chmod 744 configure;} || exit 1
 }
 
-build_fancyindex(){
+build_ext_modules(){
     cd /tmp || exit 1
-    declare -a url=(
+    declare -ra fancyindex_url=(
         "https://github.com/aperezdc/ngx-fancyindex/releases/download/v0.5.2/ngx-fancyindex-0.5.2.tar.xz"
     )
-    { _download "${url[@]}" && tar -axf ${fancyindex_ver}.tar.xz && cd ${fancyindex_ver};} || exit 1
-    cd /tmp/${nginx_ver} || exit 1
-    ./configure --with-compat --with-pcre=/tmp/${pcre2_ver} --add-dynamic-module=/tmp/${fancyindex_ver} || exit 1
-    make modules || exit 1
-}
-
-build_dav_ext(){
-    cd /tmp || exit 1
-    declare -a url=(
+    declare -ra dav_exturl=(
         "https://github.com/arut/nginx-dav-ext-module/archive/refs/tags/v3.0.0.tar.gz"
     )
-    { _download "${url[@]}" && tar -axf v3.0.0.tar.gz && cd nginx-dav-ext-module-3.0.0;} || exit 1
-    cd /tmp/${nginx_ver} || exit 1
-    ./configure --with-compat --with-pcre=/tmp/${pcre2_ver} --with-http_dav_module --add-dynamic-module=/tmp/nginx-dav-ext-module-3.0.0 || exit 1
-    make modules || exit 1
-}
-
-build_ngx_headers_more(){
-    cd /tmp || exit 1
-    declare -a url=(
+    declare -ra headers_more_url=(
         "https://github.com/openresty/headers-more-nginx-module/archive/refs/tags/v0.38.tar.gz"
     )
-    { _download "${url[@]}" && tar -axf v0.38.tar.gz && cd headers-more-nginx-module-0.38;} || exit 1
+
+    { _download "${fancyindex_url[@]}" && tar -axf ngx-fancyindex-0.5.2.tar.xz;} || exit 1
+    { _download "${dav_exturl[@]}" && tar -axf v3.0.0.tar.gz;} || exit 1
+    { _download "${headers_more_url[@]}" && tar -axf v0.38.tar.gz;} || exit 1
+    [ -f /tmp/ngx-fancyindex-0.5.2/config ] || { ls /tmp/ngx-fancyindex-0.5.2/config; exit 1;}
+    [ -f /tmp/nginx-dav-ext-module-3.0.0/config ] || { ls /tmp/nginx-dav-ext-module-3.0.0/config; exit 1;}
+    [ -f /tmp/headers-more-nginx-module-0.38/config ] || { ls /tmp/headers-more-nginx-module-0.38/config; exit 1;}
+    
     cd /tmp/${nginx_ver} || exit 1
-    ./configure --with-compat --with-pcre=/tmp/${pcre2_ver} --with-http_dav_module --add-dynamic-module=/tmp/headers-more-nginx-module-0.38 || exit 1
+    ./configure \
+    --with-compat \
+    --with-zlib=/tmp/${zlib_ver} \
+    --with-pcre=/tmp/${pcre2_ver} \
+    --with-http_dav_module \
+    --with-cc-opt="-O2 -pipe -fPIC" \
+    --add-dynamic-module=/tmp/ngx-fancyindex-0.5.2 \
+    --add-dynamic-module=/tmp/nginx-dav-ext-module-3.0.0 \
+    --add-dynamic-module=/tmp/headers-more-nginx-module-0.38 || exit 1
     make modules || exit 1
 }
 
@@ -150,8 +145,8 @@ configure_nginx(){
     --with-stream_ssl_preread_module \
     --with-zlib=/tmp/${zlib_ver} \
     --with-pcre=/tmp/${pcre2_ver} \
-    --with-cc-opt='-O2 -pipe -Wall -fPIC -I/tmp/libressl-static/include' \
-    --with-ld-opt="-L/tmp/libressl-static/lib" \
+    --with-openssl=/tmp/${libressl_ver} \
+    --with-cc-opt="-O2 -pipe" \
     || { echo "configure ${nginx_ver} failed!";exit 1;}
 }
 
@@ -173,10 +168,11 @@ clean_tmp(){
     rm -rf "/tmp/${openssl_ver}"
     rm -rf "/tmp/${zlib_ver}"
     rm -rf "/tmp/${pcre2_ver}"
-    rm -rf "/tmp/${fancyindex_ver}"
     rm -rf "/tmp/${nginx_ver}"
-    rm -rf "/tmp/nginx-dav-ext-module-3.0.0"
     rm -rf "/tmp/${libressl_ver}"
+    rm -rf "/tmp/ngx-fancyindex-0.5.2"
+    rm -rf "/tmp/nginx-dav-ext-module-3.0.0"
+    rm -rf "/tmp/headers-more-nginx-module-0.38"
     rm -rf "/tmp/libressl-static"
 }
 
@@ -188,7 +184,6 @@ echo
 echo "libressl     : ${libressl_ver}"
 echo "openssl      : ${openssl_ver}"
 echo "nginx        : ${nginx_ver}"
-echo "fancyindex   : ${fancyindex_ver}"
 echo "zlib         : ${zlib_ver} "
 echo "pcre2        : ${pcre2_ver}"
 echo
@@ -201,11 +196,9 @@ case $input in
         clean_tmp
         download_zlib
         download_pcre
-        build_libressl
+        download_libressl
         build_nginx
-        build_fancyindex
-        build_dav_ext
-        build_ngx_headers_more
+        build_ext_modules
         list_objs
         echo 'completed'
         ;;
