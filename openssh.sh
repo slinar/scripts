@@ -32,11 +32,9 @@ _check_privilege(){
 
 _get_os_version(){
     local v
-    local vv
-    v=$(uname -r|awk -F "el" '{print $2}')
-    vv=${v:0:1}
-    if [[ ${vv} = "9" || ${vv} = "8" || ${vv} = "7" || ${vv} = "6" ]]; then
-        echo -n "${vv}"
+    v=$(uname -r|awk -F el '{print $2}'|awk -F '[._]' '{print $1}')
+    if [[ ${v} = "10" || ${v} = "9" || ${v} = "8" || ${v} = "7" || ${v} = "6" ]]; then
+        echo -n "${v}"
         return
     fi
     exit 2
@@ -337,6 +335,8 @@ modify_sshd_pam(){
         modify_sshd_pam_8
     elif [ "${os_ver}" = 9 ];then
         modify_sshd_pam_8
+    elif [ "${os_ver}" = 10 ];then
+        modify_sshd_pam_8
     fi
     chown root:root /etc/pam.d/sshd
     chmod 644 /etc/pam.d/sshd
@@ -506,7 +506,7 @@ select_config(){
 exclude_openssh(){
     local yum_conf_file
     yum_conf_file=/etc/yum.conf
-    if [ "${os_ver}" = 8 ] || [ "${os_ver}" = 9 ]; then
+    if [ "${os_ver}" != 6 ] && [ "${os_ver}" != 7 ]; then
         yum_conf_file=/etc/dnf/dnf.conf
     fi
     echo "Exclude openssh, openssh-clients, openssh-server from ${yum_conf_file}"

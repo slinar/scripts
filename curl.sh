@@ -15,11 +15,9 @@ _checkPrivilege(){
 
 _get_os_version(){
     local v
-    local vv
-    v=$(uname -r|awk -F "el" '{print $2}')
-    vv=${v:0:1}
-    if [[ ${vv} = "9" || ${vv} = "8" || ${vv} = "7" || ${vv} = "6" ]]; then
-        echo -n "${vv}"
+    v=$(uname -r|awk -F el '{print $2}'|awk -F '[._]' '{print $1}')
+    if [[ ${v} = "10" || ${v} = "9" || ${v} = "8" || ${v} = "7" || ${v} = "6" ]]; then
+        echo -n "${v}"
         return
     fi
     exit 2
@@ -232,7 +230,9 @@ clean_tmp(){
 exclude_curl_in_yum(){
     local yum_conf_file
     yum_conf_file=/etc/yum.conf
-    [ "${os_ver}" = 8 ] && yum_conf_file=/etc/dnf/dnf.conf
+    if [ "${os_ver}" != 6 ] && [ "${os_ver}" != 7 ]; then
+        yum_conf_file=/etc/dnf/dnf.conf
+    fi
     echo "Exclude curl and libcurl from ${yum_conf_file}"
     if grep -q '^exclude=.*' ${yum_conf_file}; then
         local result
