@@ -13,14 +13,10 @@ _checkPrivilege(){
     exit 1
 }
 
-_get_os_version(){
-    local v
-    v=$(uname -r|awk -F el '{print $2}'|awk -F '[._]' '{print $1}')
-    if [[ ${v} = "10" || ${v} = "9" || ${v} = "8" || ${v} = "7" || ${v} = "6" ]]; then
-        echo -n "${v}"
-        return
-    fi
-    exit 2
+_os_version(){
+    [[ $(uname -r) =~ el[1-9][0-9_.]+ ]] || { echo "Unrecognized kernel: $(uname -r)"; exit 1;}
+    printf -v os_ver '%d' "$(uname -r|awk -F el '{print $2}'|awk -F '[._]' '{print $1}')" || exit 1
+    readonly os_ver
 }
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
@@ -270,14 +266,11 @@ initializing_build_environment(){
     export CFLAGS="-fPIC -O2"
 }
 
-_get_os_version &> /dev/null
-os_ver=$(_get_os_version)
+_os_version
 if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
     openssl_ver="openssl-1.1.1w"
+    readonly openssl_ver
 fi
-readonly os_ver
-readonly openssl_ver
-
 echo "-------------------------------------------"
 echo "openssl : ${openssl_ver}"
 echo "nghttp2 : ${nghttp2_ver}"

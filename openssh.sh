@@ -30,14 +30,10 @@ _check_privilege(){
     exit 1
 }
 
-_get_os_version(){
-    local v
-    v=$(uname -r|awk -F el '{print $2}'|awk -F '[._]' '{print $1}')
-    if [[ ${v} = "10" || ${v} = "9" || ${v} = "8" || ${v} = "7" || ${v} = "6" ]]; then
-        echo -n "${v}"
-        return
-    fi
-    exit 2
+_os_version(){
+    [[ $(uname -r) =~ el[1-9][0-9_.]+ ]] || { echo "Unrecognized kernel: $(uname -r)"; exit 1;}
+    printf -v os_ver '%d' "$(uname -r|awk -F el '{print $2}'|awk -F '[._]' '{print $1}')" || exit 1
+    readonly os_ver
 }
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
@@ -562,7 +558,8 @@ test_curl(){
 # Get the current sshd port, using the first value.If the current sshd port is not available then the default port is used
 get_current_sshd_port(){
     sshd_port=$(ss -lnpt|grep sshd|awk '{print $(NF-2)}'|awk -F : '{print $NF}'|head -1)
-    [[ ${sshd_port} =~ ^[0-9]+$ ]] || sshd_port="22"
+    [[ ${sshd_port} =~ ^[0-9]{1,5}$ && ${sshd_port} -gt 0 && ${sshd_port} -lt 65535 ]] || sshd_port="22"
+    readonly sshd_port
 }
 
 initializing_build_environment(){
@@ -572,16 +569,9 @@ initializing_build_environment(){
     fi
 }
 
-init_os_ver(){
-    _get_os_version &> /dev/null
-    os_ver=$(_get_os_version)
-    readonly os_ver
-}
-
+_os_version
 _check_privilege
 get_current_sshd_port
-init_os_ver
-
 echo "-------------------------------------------"
 echo "openssl            : ${openssl_ver}"
 echo "openssh            : ${openssh_ver}"
