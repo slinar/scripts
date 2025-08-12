@@ -2,10 +2,14 @@
 set -o pipefail
 
 declare -r zlib_ver="zlib-1.3.1"
-openssl_ver="openssl-3.0.16"
-declare -r nghttp2_ver="nghttp2-1.65.0"
-declare -r curl_ver="curl-8.13.0"
+openssl_ver="openssl-3.0.17"
+declare -r nghttp2_ver="nghttp2-1.66.0"
+declare -r curl_ver="curl-8.15.0"
 declare -r pycurl_ver="REL_7_43_0_5"
+declare -r libunistring_ver="libunistring-1.3"
+declare -r libidn2_ver="libidn2-2.3.8"
+declare -r brotli_ver="v1.1.0"
+declare -r cmake_ver="cmake-3.27.9-linux-x86_64"
 
 _checkPrivilege(){
     test "$(id -u)" -eq 0 && return
@@ -140,8 +144,11 @@ check_yum_repositories(){
 
 build_zlib(){
     cd /tmp || exit 1
+    local zlib_ver_num
+    zlib_ver_num="$(awk -F '-' '{print $2}' <<< ${zlib_ver})"
     declare -ra url=(
         "https://zlib.net/${zlib_ver}.tar.gz"
+        "https://github.com/madler/zlib/releases/download/v${zlib_ver_num}/${zlib_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${zlib_ver}.tar.gz && cd ${zlib_ver} && chmod 744 configure;} || exit 1
     ./configure --prefix=/tmp/zlib-static --static || exit 1
@@ -179,6 +186,58 @@ build_nghttp2(){
     exit 1
 }
 
+build_libunistring(){
+    cd /tmp || exit 1
+    declare -ra url=(
+        "https://mirrors.kernel.org/gnu/libunistring/${libunistring_ver}.tar.gz"
+    )
+    { _download "${url[@]}" && tar -axf ${libunistring_ver}.tar.gz && cd ${libunistring_ver} && chmod 744 configure;} || exit 1
+    ./configure --prefix=/tmp/libunistring-static --disable-rpath --disable-shared --disable-dependency-tracking --enable-year2038
+    make && make install && return
+    exit 1
+}
+
+build_libidn2(){
+    cd /tmp || exit 1
+    declare -ra url=(
+        "https://mirrors.kernel.org/gnu/libidn/${libidn2_ver}.tar.gz"
+    )
+    { _download "${url[@]}" && tar -axf ${libidn2_ver}.tar.gz && cd ${libidn2_ver} && chmod 744 configure;} || exit 1
+    ./configure --with-libunistring-prefix=/tmp/libunistring-static --prefix=/tmp/libidn2-static --disable-shared
+    make && make install && return
+    exit 1
+}
+
+build_brotli(){
+    cd /tmp || exit 1
+    local ver_num
+    brotli_num="$(awk -F v '{print $NF}' <<< ${brotli_ver})"
+    declare -ra url=(
+        "https://github.com/google/brotli/archive/refs/tags/${brotli_ver}.tar.gz"
+    )
+    { _download "${url[@]}" && tar -axf ${brotli_ver}.tar.gz && cd brotli-"${brotli_num}" && [ -f CMakeLists.txt ];} || exit 1
+    mkdir -p out && cd out || exit 1
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/tmp/brotli-static -DBUILD_SHARED_LIBS=OFF .. || exit 1
+    cmake --build . --config Release --target install || exit 1
+    cd /tmp && rm -rf brotli-"${brotli_num}"
+}
+
+download_cmake(){
+    cd /tmp || exit 1
+    local major_ver
+    local major_minor_ver
+    major_ver="$(awk -F '[.-]' '{print $2 "." $3}' <<< ${cmake_ver})"
+    major_minor_ver="$(awk -F '-' '{print $2}' <<< ${cmake_ver})"
+    declare -ra url=(
+        "https://cmake.org/files/v${major_ver}/${cmake_ver}.tar.gz"
+        "https://github.com/Kitware/CMake/releases/download/v${major_minor_ver}/${cmake_ver}.tar.gz"
+    )
+    { _download "${url[@]}" && tar -axf ${cmake_ver}.tar.gz && chmod 755 /tmp/${cmake_ver}/bin/*;} || exit 1
+    export PATH=/tmp/${cmake_ver}/bin:${PATH}
+    [ -x /tmp/${cmake_ver}/bin/cmake ] || exit 3
+    cmake --version || exit 4
+}
+
 install_pycurl(){
     if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
         cd /tmp || exit 1
@@ -197,8 +256,9 @@ install_curl(){
         "https://curl.se/download/${curl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${curl_ver}.tar.gz && cd ${curl_ver} && chmod 744 configure;} || exit 1
-    export PKG_CONFIG_PATH=/tmp/zlib-static/lib/pkgconfig:/tmp/nghttp2-static/lib/pkgconfig
-    ./configure --prefix=/usr --libdir=/usr/lib64 --enable-optimize --with-ca-bundle=/etc/pki/tls/certs/ca-bundle.crt --with-ssl=/tmp/openssl-static --without-libpsl || exit 1
+    export PKG_CONFIG_PATH=/tmp/zlib-static/lib/pkgconfig:/tmp/brotli-static/lib64/pkgconfig:/tmp/nghttp2-static/lib/pkgconfig:/tmp/libidn2-static/lib/pkgconfig
+    export PKG_CONFIG="pkg-config --static"
+    ./configure --prefix=/usr --libdir=/usr/lib64 --enable-optimize --with-ca-bundle=/etc/pki/tls/certs/ca-bundle.crt --with-ssl=/tmp/openssl-static --with-nghttp2 --with-brotli --with-libidn2 --without-libpsl || exit 1
     make && make install && return
     exit 1
 }
@@ -221,6 +281,12 @@ clean_tmp(){
     rm -rf /tmp/nghttp2-static
     rm -rf /tmp/pycurl-${pycurl_ver}
     rm -rf /tmp/${curl_ver}
+    rm -rf /tmp/${libidn2_ver}
+    rm -rf /tmp/libidn2-static
+    rm -rf /tmp/${libunistring_ver}
+    rm -rf /tmp/libunistring-static
+    rm -rf /tmp/${cmake_ver}
+    rm -rf /tmp/brotli-static 
 }
 
 exclude_curl_in_yum(){
@@ -262,25 +328,29 @@ initializing_build_environment(){
     if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ];then
         yum -y install python-devel curl libcurl python-pycurl nss || exit 1
     fi
-    yum -y install brotli-devel libidn2-devel
-    export CFLAGS="-fPIC -O2"
+    export CFLAGS="-fPIC -O2 -Wno-error=unknown-pragmas -Wno-error=sign-compare -Wno-error=cast-align"
 }
 
 _os_version
 if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
     openssl_ver="openssl-1.1.1w"
-    readonly openssl_ver
 fi
+readonly openssl_ver
+
 echo "-------------------------------------------"
-echo "openssl : ${openssl_ver}"
-echo "nghttp2 : ${nghttp2_ver}"
-echo "curl    : ${curl_ver}"
-echo "pycurl  : ${pycurl_ver}"
-echo "zlib    : ${zlib_ver}"
-echo "os_ver  : ${os_ver}"
-echo "TIME    : $(date +"%Y-%m-%d %H:%M:%S %Z")"
+echo "openssl      : ${openssl_ver}"
+echo "nghttp2      : ${nghttp2_ver}"
+echo "curl         : ${curl_ver}"
+echo "pycurl       : ${pycurl_ver}"
+echo "zlib         : ${zlib_ver}"
+echo "libunistring : ${libunistring_ver}"
+echo "libidn2      : ${libidn2_ver}"
+echo "brotli       : ${brotli_ver}"
+echo "cmake        : ${cmake_ver}"
+echo "os_ver       : ${os_ver}"
+echo "TIME         : $(date +"%Y-%m-%d %H:%M:%S %Z")"
 echo "-------------------------------------------"
-read -r -n 1 -p "Do you want to continue? [y/n]" input
+read -r -n 1 -p "Do you want to continue? [y/n/c]" input
 case $input in
     "y")
         echo
@@ -290,6 +360,10 @@ case $input in
         update_ca_file
         check_ca_file
         clean_tmp
+        download_cmake
+        build_brotli
+        build_libunistring
+        build_libidn2
         build_zlib
         build_openssl
         build_nghttp2
@@ -297,6 +371,10 @@ case $input in
         install_pycurl
         exclude_curl_in_yum
         show_curl_ver
+        ;;
+    "c")
+        echo
+        clean_tmp
         ;;
     *)
         echo
