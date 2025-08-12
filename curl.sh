@@ -328,7 +328,7 @@ initializing_build_environment(){
     if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ];then
         yum -y install python-devel curl libcurl python-pycurl nss || exit 1
     fi
-    export CFLAGS="-fPIC -O2 -Wno-error=unknown-pragmas -Wno-error=sign-compare -Wno-error=cast-align"
+    export CFLAGS="-fPIC -O3 -Wno-error=unknown-pragmas -Wno-error=sign-compare -Wno-error=cast-align"
 }
 
 _os_version

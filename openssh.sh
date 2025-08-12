@@ -21,7 +21,7 @@ declare -ra openssl_url=(
 declare -ra openssh_url=(
     "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
     "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
-    "https://mirror.edgecast.com/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
+    "https://mirrors.aliyun.com/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
 )
 
 _check_privilege(){
@@ -481,6 +481,7 @@ conf_openssh(){
     [ "${pam}" = yes ] && pam_option='--with-pam'
     [ "${without_openssl}" = yes ] && openssl_option='--without-openssl'
     [ "${without_openssl}" = no ] && openssl_option="--with-ssl-dir=/tmp/openssl-static"
+    export CFLAGS="-O3 -Wno-error=unknown-pragmas -Wno-error=sign-compare -Wno-error=cast-align"
     ./configure --prefix=/usr --sysconfdir=/etc/ssh ${openssl_option} ${pam_option} --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd --without-zlib --with-pie \
     || { echo "Failed to configure openssh";exit 1;}
 }

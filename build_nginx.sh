@@ -146,7 +146,7 @@ configure_nginx(){
     --with-zlib=/tmp/${zlib_ver} \
     --with-pcre=/tmp/${pcre2_ver} \
     --with-openssl=/tmp/${libressl_ver} \
-    --with-cc-opt="-O2 -pipe" \
+    --with-cc-opt="-O3 -pipe" \
     || { echo "configure ${nginx_ver} failed!";exit 1;}
 }
 
