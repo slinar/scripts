@@ -99,7 +99,7 @@ build_ext_modules(){
     --with-zlib=/tmp/${zlib_ver} \
     --with-pcre=/tmp/${pcre2_ver} \
     --with-http_dav_module \
-    --with-cc-opt="-O2 -pipe -fPIC" \
+    --with-cc-opt="-O3 -pipe -fPIC" \
     --add-dynamic-module=/tmp/ngx-fancyindex-0.5.2 \
     --add-dynamic-module=/tmp/nginx-dav-ext-module-3.0.0 \
     --add-dynamic-module=/tmp/headers-more-nginx-module-0.38 || exit 1
