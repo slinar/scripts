@@ -2,9 +2,9 @@
 set -o pipefail
 
 declare -r zlib_ver="zlib-1.3.1"
-openssl_ver="openssl-3.0.17"
-declare -r nghttp2_ver="nghttp2-1.66.0"
-declare -r curl_ver="curl-8.15.0"
+openssl_ver="openssl-3.0.18"
+declare -r nghttp2_ver="nghttp2-1.67.1"
+declare -r curl_ver="curl-8.16.0"
 declare -r pycurl_ver="REL_7_43_0_5"
 declare -r libunistring_ver="libunistring-1.3"
 declare -r libidn2_ver="libidn2-2.3.8"
@@ -324,7 +324,7 @@ update_ca_file(){
 }
 
 initializing_build_environment(){
-    yum -y install gcc gcc-c++ perl perl-IPC-Cmd make ca-certificates pkgconfig || exit 1
+    yum -y install gcc gcc-c++ perl perl-IPC-Cmd perl-Time-Piece make ca-certificates pkgconfig || exit 1
     if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ];then
         yum -y install python-devel curl libcurl python-pycurl nss || exit 1
     fi

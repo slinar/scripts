@@ -1,8 +1,8 @@
 #!/bin/bash
 set -o pipefail
 
-declare -r openssh_ver="openssh-10.0p1"
-declare -r openssl_ver="openssl-3.0.17"
+declare -r openssh_ver="openssh-10.2p1"
+declare -r openssl_ver="openssl-3.0.18"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no" [yes/no]
 declare -r use_default_config="yes"
@@ -12,6 +12,9 @@ declare -r pam="no"
 
 # Do not use openssl? [yes/no]
 declare -r without_openssl="no"
+
+# Use the old host_key; do not regenerate a new host_key. [yes/no]
+declare -r retain_host_key="no"
 
 # Download url
 declare -ra openssl_url=(
@@ -456,7 +459,7 @@ uninstall_old_openssh(){
     mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak &> /dev/null
     rpm -e openssh-server
     sshd_init uninstall
-    rm -f /etc/ssh/ssh_host_*
+    [ "${retain_host_key}" = no ] && rm -f /etc/ssh/ssh_host_*
     rm -f /etc/ssh/moduli
     rm -rf /var/empty/sshd
 }
@@ -564,7 +567,7 @@ get_current_sshd_port(){
 }
 
 initializing_build_environment(){
-    yum -y install gcc tar perl perl-IPC-Cmd make pam-devel ca-certificates || exit 1
+    yum -y install gcc tar perl perl-IPC-Cmd perl-Time-Piece make pam-devel ca-certificates || exit 1
     if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
         yum -y install nss
     fi
@@ -580,6 +583,7 @@ echo "sshd_port          : ${sshd_port}"
 echo "pam                : ${pam}"
 echo "use_default_config : ${use_default_config}"
 echo "without_openssl    : ${without_openssl}"
+echo "retain_host_key    : ${retain_host_key}"
 echo "os_ver             : ${os_ver}"
 echo "Backup             : /etc/pam.d/sshd /etc/pam.d/sshd_bak"
 echo "-------------------------------------------"
