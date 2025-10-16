@@ -1,30 +1,30 @@
 #!/bin/bash
 set -o pipefail
 
-declare -r openssh_ver="openssh-10.2p1"
-declare -r openssl_ver="openssl-3.0.18"
+declare -r OPENSSH_VER="openssh-10.2p1"
+declare -r OPENSSL_VER="openssl-3.0.18"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no" [yes/no]
-declare -r use_default_config="yes"
+declare -r USE_DEFAULT_CONFIG="yes"
 
 # Enables PAM support [yes/no]
-declare -r pam="no"
+declare -r BUILD_WITH_PAM="no"
 
 # Do not use openssl? [yes/no]
-declare -r without_openssl="no"
+declare -r BUILD_WITHOUT_OPENSSL="no"
 
 # Use the old host_key; do not regenerate a new host_key. [yes/no]
-declare -r retain_host_key="no"
+declare -r PRESERVE_HOST_KEYS="no"
 
 # Download url
-declare -ra openssl_url=(
-    "https://github.com/openssl/openssl/releases/download/${openssl_ver}/${openssl_ver}.tar.gz"
+declare -ra OPENSSL_URL=(
+    "https://github.com/openssl/openssl/releases/download/${OPENSSL_VER}/${OPENSSL_VER}.tar.gz"
 )
 
-declare -ra openssh_url=(
-    "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
-    "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
-    "https://mirrors.aliyun.com/pub/OpenBSD/OpenSSH/portable/${openssh_ver}.tar.gz"
+declare -ra OPENSSH_URL=(
+    "https://cloudflare.cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${OPENSSH_VER}.tar.gz"
+    "https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/${OPENSSH_VER}.tar.gz"
+    "https://mirrors.aliyun.com/pub/OpenBSD/OpenSSH/portable/${OPENSSH_VER}.tar.gz"
 )
 
 _check_privilege(){
@@ -159,9 +159,9 @@ check_yum_repositories(){
 }
 
 build_openssl(){
-    [ "${without_openssl}" = yes ] && return
+    [ "${BUILD_WITHOUT_OPENSSL}" = yes ] && return
     cd /tmp || exit 1
-    { _download "${openssl_url[@]}" && tar -axf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
+    { _download "${OPENSSL_URL[@]}" && tar -axf ${OPENSSL_VER}.tar.gz && cd ${OPENSSL_VER} && chmod 744 config;} || exit 1
     ./config --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl -fPIC no-shared no-threads no-weak-ssl-ciphers \
     || { echo "Failed to config openssl";exit 1;}
     make && make install_sw && return
@@ -325,7 +325,7 @@ EOF
 }
 
 modify_sshd_pam(){
-    [ "${pam}" = no ] && rm -f /etc/pam.d/sshd && return
+    [ "${BUILD_WITH_PAM}" = no ] && rm -f /etc/pam.d/sshd && return
     if [ "${os_ver}" = 6 ]; then
         modify_sshd_pam_6
     elif [ "${os_ver}" = 7 ];then
@@ -346,7 +346,7 @@ modify_sshdconfig(){
     sed -i 's/^[[:space:]]*#\+[[:space:]]*PermitRootLogin[[:space:]]\+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
     sed -i 's/^[[:space:]]*UseDNS[[:space:]]\+yes[[:space:]]*$/#UseDNS no/' /etc/ssh/sshd_config
     sed -i '/^[[:space:]]*GSSAPI.*/d' /etc/ssh/sshd_config
-    if [ "${pam}" = yes ]; then
+    if [ "${BUILD_WITH_PAM}" = yes ]; then
         sed -i 's/^[[:space:]#]*UsePAM[[:space:]]\+no[[:space:]]*$/UsePAM yes/' /etc/ssh/sshd_config
     else
         sed -i 's/^[[:space:]#]*UsePAM[[:space:]]\+yes[[:space:]]*$/#UsePAM no/' /etc/ssh/sshd_config
@@ -397,7 +397,7 @@ sshd_init(){
     case "$1" in
         "install")
             if [ "${os_ver}" = 6 ]; then
-                cp -f /tmp/${openssh_ver}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
+                cp -f /tmp/${OPENSSH_VER}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
                 modify_el6_sshd_init
                 chkconfig --add sshd
                 chkconfig sshd on
@@ -459,14 +459,14 @@ uninstall_old_openssh(){
     mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak &> /dev/null
     rpm -e openssh-server
     sshd_init uninstall
-    [ "${retain_host_key}" = no ] && rm -f /etc/ssh/ssh_host_*
+    [ "${PRESERVE_HOST_KEYS}" = no ] && rm -f /etc/ssh/ssh_host_*
     rm -f /etc/ssh/moduli
     rm -rf /var/empty/sshd
 }
 
 download_openssh(){
     cd /tmp || exit 1
-    { _download "${openssh_url[@]}" && tar -axf ${openssh_ver}.tar.gz && cd ${openssh_ver} && chmod 744 configure;} || exit 1
+    { _download "${OPENSSH_URL[@]}" && tar -axf ${OPENSSH_VER}.tar.gz && cd ${OPENSSH_VER} && chmod 744 configure;} || exit 1
 }
 
 kill_sshd_main_process(){
@@ -481,16 +481,16 @@ kill_sshd_main_process(){
 conf_openssh(){
     local pam_option
     local openssl_option
-    [ "${pam}" = yes ] && pam_option='--with-pam'
-    [ "${without_openssl}" = yes ] && openssl_option='--without-openssl'
-    [ "${without_openssl}" = no ] && openssl_option="--with-ssl-dir=/tmp/openssl-static"
+    [ "${BUILD_WITH_PAM}" = yes ] && pam_option='--with-pam'
+    [ "${BUILD_WITHOUT_OPENSSL}" = yes ] && openssl_option='--without-openssl'
+    [ "${BUILD_WITHOUT_OPENSSL}" = no ] && openssl_option="--with-ssl-dir=/tmp/openssl-static"
     export CFLAGS="-O3 -Wno-error=unknown-pragmas -Wno-error=sign-compare -Wno-error=cast-align"
     ./configure --prefix=/usr --sysconfdir=/etc/ssh ${openssl_option} ${pam_option} --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd --without-zlib --with-pie \
     || { echo "Failed to configure openssh";exit 1;}
 }
 
 select_config(){
-    if [ "${use_default_config}" = no ] && /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
+    if [ "${USE_DEFAULT_CONFIG}" = no ] && /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
         echo "The old sshd_config test is successful, use the old sshd_config"
         [ -f /etc/ssh/sshd_config_bak ] && mv -f /etc/ssh/sshd_config_bak /etc/ssh/sshd_config
         [ -f /etc/ssh/ssh_config_bak ] && mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
@@ -550,8 +550,8 @@ install_openssh(){
 }
 
 pre_clean_tmp(){
-    rm -rf /tmp/${openssl_ver}
-    rm -rf /tmp/${openssh_ver}
+    rm -rf /tmp/${OPENSSL_VER}
+    rm -rf /tmp/${OPENSSH_VER}
     rm -rf /tmp/openssl-static
 }
 
@@ -577,18 +577,18 @@ _os_version
 _check_privilege
 get_current_sshd_port
 echo "-------------------------------------------"
-echo "openssl            : ${openssl_ver}"
-echo "openssh            : ${openssh_ver}"
-echo "sshd_port          : ${sshd_port}"
-echo "pam                : ${pam}"
-echo "use_default_config : ${use_default_config}"
-echo "without_openssl    : ${without_openssl}"
-echo "retain_host_key    : ${retain_host_key}"
-echo "os_ver             : ${os_ver}"
-echo "Backup             : /etc/pam.d/sshd /etc/pam.d/sshd_bak"
+echo "OPENSSL_VER           : ${OPENSSL_VER}"
+echo "OPENSSH_VER           : ${OPENSSH_VER}"
+echo "sshd_port             : ${sshd_port}"
+echo "BUILD_WITH_PAM        : ${BUILD_WITH_PAM}"
+echo "USE_DEFAULT_CONFIG    : ${USE_DEFAULT_CONFIG}"
+echo "BUILD_WITHOUT_OPENSSL : ${BUILD_WITHOUT_OPENSSL}"
+echo "PRESERVE_HOST_KEYS    : ${PRESERVE_HOST_KEYS}"
+echo "os_ver                : ${os_ver}"
+echo "Backup                : /etc/pam.d/sshd /etc/pam.d/sshd_bak"
 echo "-------------------------------------------"
 
-[ "${without_openssl}" = yes ] && \
+[ "${BUILD_WITHOUT_OPENSSL}" = yes ] && \
 echo "You chose to build openssh without openssl, only a subset of ciphers and algorithms are supported." && \
 cat <<EOF
 ssh2-enum-algos: 
