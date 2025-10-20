@@ -35,8 +35,8 @@ _check_privilege(){
 
 _os_version(){
     [[ $(uname -r) =~ el[1-9][0-9_.]+ ]] || { echo "Unrecognized kernel: $(uname -r)"; exit 1;}
-    printf -v os_ver '%d' "$(uname -r|awk -F el '{print $2}'|awk -F '[._]' '{print $1}')" || exit 1
-    readonly os_ver
+    printf -v OS_VER '%d' "$(uname -r|awk -F el '{print $2}'|awk -F '[._]' '{print $1}')" || exit 1
+    readonly OS_VER
 }
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
@@ -147,13 +147,13 @@ EOF
 }
 
 check_yum_repositories(){
-    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+    if [ "${OS_VER}" = 6 ] || [ "${OS_VER}" = 7 ]; then
         if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then
             yum makecache && return
         fi
         mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
-        [ "${os_ver}" = 6 ] && write_CentOS_Base_6
-        [ "${os_ver}" = 7 ] && write_CentOS_Base_7
+        [ "${OS_VER}" = 6 ] && write_CentOS_Base_6
+        [ "${OS_VER}" = 7 ] && write_CentOS_Base_7
         yum clean all && yum makecache || exit 1
     fi
 }
@@ -170,28 +170,28 @@ build_openssl(){
 
 modify_iptables(){
     echo "Find iptables rules :"
-    iptables -nvL|grep -E "ACCEPT.*(tcp|6).*dpt:${sshd_port}" || \
-    iptables -nvL|grep -E "ACCEPT.*(tcp|6).*dports.*[,[:space:]]${sshd_port}," || \
-    iptables -nvL|grep -E "ACCEPT.*(tcp|6).*dports.*[,[:space:]]${sshd_port}[[:space:]]*$" && return
-    echo "No rules found for accepting port ${sshd_port}"
+    iptables -nvL|grep -E "ACCEPT.*(tcp|6).*dpt:${SSHD_PORT}" || \
+    iptables -nvL|grep -E "ACCEPT.*(tcp|6).*dports.*[,[:space:]]${SSHD_PORT}," || \
+    iptables -nvL|grep -E "ACCEPT.*(tcp|6).*dports.*[,[:space:]]${SSHD_PORT}[[:space:]]*$" && return
+    echo "No rules found for accepting port ${SSHD_PORT}"
     iptables -P INPUT DROP
     iptables -P OUTPUT ACCEPT
-    iptables -I INPUT -p tcp -m tcp --dport "${sshd_port}" -j ACCEPT
+    iptables -I INPUT -p tcp -m tcp --dport "${SSHD_PORT}" -j ACCEPT
     service iptables save
 }
 
 modify_firewalld(){
     echo -n "Check the tcp/22 port in firewalld: "
-    if [ "${sshd_port}" = 22 ]; then
+    if [ "${SSHD_PORT}" = 22 ]; then
         firewall-cmd --query-service=ssh && return
     fi
-    firewall-cmd --query-port "${sshd_port}"/tcp && return
+    firewall-cmd --query-port "${SSHD_PORT}"/tcp && return
     echo "Modify firewalld: "
-    firewall-cmd --add-port="${sshd_port}"/tcp --permanent && firewall-cmd --reload
+    firewall-cmd --add-port="${SSHD_PORT}"/tcp --permanent && firewall-cmd --reload
 }
 
 modify_fw(){
-    if [ "${os_ver}" = 6 ]; then
+    if [ "${OS_VER}" = 6 ]; then
         echo "modify_iptables(el6)"
         modify_iptables
     elif systemctl status firewalld.service --no-pager --full; then
@@ -326,15 +326,15 @@ EOF
 
 modify_sshd_pam(){
     [ "${BUILD_WITH_PAM}" = no ] && rm -f /etc/pam.d/sshd && return
-    if [ "${os_ver}" = 6 ]; then
+    if [ "${OS_VER}" = 6 ]; then
         modify_sshd_pam_6
-    elif [ "${os_ver}" = 7 ];then
+    elif [ "${OS_VER}" = 7 ];then
         modify_sshd_pam_7
-    elif [ "${os_ver}" = 8 ];then
+    elif [ "${OS_VER}" = 8 ];then
         modify_sshd_pam_8
-    elif [ "${os_ver}" = 9 ];then
+    elif [ "${OS_VER}" = 9 ];then
         modify_sshd_pam_8
-    elif [ "${os_ver}" = 10 ];then
+    elif [ "${OS_VER}" = 10 ];then
         modify_sshd_pam_8
     fi
     chown root:root /etc/pam.d/sshd
@@ -342,7 +342,7 @@ modify_sshd_pam(){
 }
 
 modify_sshdconfig(){
-    sed -i 's/^[[:space:]#]*Port[[:space:]]\+[[:digit:]]\+[[:space:]]*$/Port '"${sshd_port}"'/' /etc/ssh/sshd_config
+    sed -i 's/^[[:space:]#]*Port[[:space:]]\+[[:digit:]]\+[[:space:]]*$/Port '"${SSHD_PORT}"'/' /etc/ssh/sshd_config
     sed -i 's/^[[:space:]]*#\+[[:space:]]*PermitRootLogin[[:space:]]\+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
     sed -i 's/^[[:space:]]*UseDNS[[:space:]]\+yes[[:space:]]*$/#UseDNS no/' /etc/ssh/sshd_config
     sed -i '/^[[:space:]]*GSSAPI.*/d' /etc/ssh/sshd_config
@@ -396,7 +396,7 @@ modify_el6_sshd_init(){
 sshd_init(){
     case "$1" in
         "install")
-            if [ "${os_ver}" = 6 ]; then
+            if [ "${OS_VER}" = 6 ]; then
                 cp -f /tmp/${OPENSSH_VER}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
                 modify_el6_sshd_init
                 chkconfig --add sshd
@@ -410,7 +410,7 @@ sshd_init(){
             fi
             ;;
         "uninstall")
-            if [ "${os_ver}" = 6 ]; then
+            if [ "${OS_VER}" = 6 ]; then
                 chkconfig --del sshd &> /dev/null
                 rm -f /etc/rc.d/init.d/sshd
             else
@@ -427,21 +427,21 @@ sshd_init(){
             fi
             ;;
         "status")
-            if [ "${os_ver}" = 6 ]; then
+            if [ "${OS_VER}" = 6 ]; then
                 service sshd status
             else
                 systemctl status sshd.service --no-pager --full
             fi
             ;;
         "start")
-            if [ "${os_ver}" = 6 ]; then
+            if [ "${OS_VER}" = 6 ]; then
                 service sshd start
             else
                 systemctl start sshd.service
             fi
             ;;
         "stop")
-            if [ "${os_ver}" = 6 ]; then
+            if [ "${OS_VER}" = 6 ]; then
                 service sshd stop
             else
                 systemctl stop sshd.service
@@ -506,7 +506,7 @@ select_config(){
 exclude_openssh(){
     local yum_conf_file
     yum_conf_file=/etc/yum.conf
-    if [ "${os_ver}" != 6 ] && [ "${os_ver}" != 7 ]; then
+    if [ "${OS_VER}" != 6 ] && [ "${OS_VER}" != 7 ]; then
         yum_conf_file=/etc/dnf/dnf.conf
     fi
     echo "Exclude openssh, openssh-clients, openssh-server from ${yum_conf_file}"
@@ -561,14 +561,14 @@ test_curl(){
 
 # Get the current sshd port, using the first value.If the current sshd port is not available then the default port is used
 get_current_sshd_port(){
-    sshd_port=$(ss -lnpt|grep sshd|awk '{print $(NF-2)}'|awk -F : '{print $NF}'|head -1)
-    [[ ${sshd_port} =~ ^[0-9]{1,5}$ && ${sshd_port} -gt 0 && ${sshd_port} -lt 65535 ]] || sshd_port="22"
-    readonly sshd_port
+    SSHD_PORT=$(ss -lnpt|grep sshd|awk '{print $(NF-2)}'|awk -F : '{print $NF}'|head -1)
+    [[ ${SSHD_PORT} =~ ^[0-9]{1,5}$ && ${SSHD_PORT} -gt 0 && ${SSHD_PORT} -lt 65535 ]] || SSHD_PORT="22"
+    readonly SSHD_PORT
 }
 
 initializing_build_environment(){
     yum -y install gcc tar perl perl-IPC-Cmd perl-Time-Piece make pam-devel ca-certificates || exit 1
-    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+    if [ "${OS_VER}" = 6 ] || [ "${OS_VER}" = 7 ]; then
         yum -y install nss
     fi
 }
@@ -579,12 +579,12 @@ get_current_sshd_port
 echo "-------------------------------------------"
 echo "OPENSSL_VER           : ${OPENSSL_VER}"
 echo "OPENSSH_VER           : ${OPENSSH_VER}"
-echo "sshd_port             : ${sshd_port}"
+echo "SSHD_PORT             : ${SSHD_PORT}"
 echo "BUILD_WITH_PAM        : ${BUILD_WITH_PAM}"
 echo "USE_DEFAULT_CONFIG    : ${USE_DEFAULT_CONFIG}"
 echo "BUILD_WITHOUT_OPENSSL : ${BUILD_WITHOUT_OPENSSL}"
 echo "PRESERVE_HOST_KEYS    : ${PRESERVE_HOST_KEYS}"
-echo "os_ver                : ${os_ver}"
+echo "OS_VER                : ${OS_VER}"
 echo "Backup                : /etc/pam.d/sshd /etc/pam.d/sshd_bak"
 echo "-------------------------------------------"
 
