@@ -34,8 +34,10 @@ _check_privilege(){
 }
 
 _os_version(){
-    [[ $(uname -r) =~ el[1-9][0-9_.]+ ]] || { echo "Unrecognized kernel: $(uname -r)"; exit 1;}
-    printf -v OS_VER '%d' "$(uname -r|awk -F el '{print $2}'|awk -F '[._]' '{print $1}')" || exit 1
+    local -r kernel_release="$(uname -r)"
+    [[ ${kernel_release} =~ el[1-9][0-9_.]+ ]] || exit 3
+    OS_VER="$(echo -n "${kernel_release}"|awk -F el '{print $2}'|awk -F '[._]' '{print $1}')"
+    [[ ${OS_VER} =~ ^[0-9]{1,2}$ && ${OS_VER} -gt 0 && ${OS_VER} -lt 99 ]] || exit 3
     readonly OS_VER
 }
 
