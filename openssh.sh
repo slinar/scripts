@@ -278,7 +278,7 @@ EOF
 }
 
 modify_sshd_pam_7(){
-    cat > /etc/pamd.d/sshd<<EOF
+    cat > /etc/pam.d/sshd<<EOF
 #%PAM-1.0
 auth       required     pam_sepermit.so
 auth       substack     password-auth
