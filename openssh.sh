@@ -176,8 +176,6 @@ modify_iptables(){
     iptables -nvL|grep -E "ACCEPT.*(tcp|6).*dports.*[,[:space:]]${SSHD_PORT}," || \
     iptables -nvL|grep -E "ACCEPT.*(tcp|6).*dports.*[,[:space:]]${SSHD_PORT}[[:space:]]*$" && return
     echo "No rules found for accepting port ${SSHD_PORT}"
-    iptables -P INPUT DROP
-    iptables -P OUTPUT ACCEPT
     iptables -I INPUT -p tcp -m tcp --dport "${SSHD_PORT}" -j ACCEPT
     service iptables save
 }
