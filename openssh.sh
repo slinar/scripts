@@ -384,9 +384,12 @@ modify_ssh_file_permission(){
     if [ -d /root/.ssh ]; then
         chown root:root -R /root/.ssh
         chmod 700 /root/.ssh
-        [ -f /root/.ssh/authorized_keys ] && chmod 644 /root/.ssh/authorized_keys
+        [ -f /root/.ssh/authorized_keys ] && chmod 600 /root/.ssh/authorized_keys
         [ -f /root/.ssh/known_hosts ] && chmod 644 /root/.ssh/known_hosts
     fi
+    find /home -type d -path '/home/*/.ssh' -exec chmod 700 {} +
+    find /home -type f -path '/home/*/.ssh/authorized_keys' -exec chmod 600 {} +
+    find /home -type f -path '/home/*/.ssh/known_hosts' -exec chmod 644 {} +
 }
 
 modify_el6_sshd_init(){
