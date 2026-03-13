@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o pipefail
 
-declare -r zlib_ver="zlib-1.3.1"
+declare -r zlib_ver="zlib-1.3.2"
 openssl_ver="openssl-3.0.19"
 declare -r nghttp2_ver="nghttp2-1.68.0"
 declare -r curl_ver="curl-8.17.0"
