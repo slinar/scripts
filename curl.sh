@@ -2,11 +2,11 @@
 set -o pipefail
 
 declare -r zlib_ver="zlib-1.3.2"
-openssl_ver="openssl-3.0.19"
-declare -r nghttp2_ver="nghttp2-1.68.0"
+declare -r openssl_ver="openssl-3.0.19"
+declare -r nghttp2_ver="nghttp2-1.68.1"
 declare -r curl_ver="curl-8.17.0"
 declare -r pycurl_ver="REL_7_43_0_5"
-declare -r libunistring_ver="libunistring-1.4.1"
+declare -r libunistring_ver="libunistring-1.4.2"
 declare -r libidn2_ver="libidn2-2.3.8"
 declare -r brotli_ver="v1.1.0"
 declare -r cmake_ver="cmake-3.27.9-linux-x86_64"
@@ -162,12 +162,13 @@ build_openssl(){
         declare -ra url=(
             "https://github.com/openssl/openssl/releases/download/OpenSSL_1_1_1w/openssl-1.1.1w.tar.gz"
         )
+        { _download "${url[@]}" && tar -axf openssl-1.1.1w.tar.gz && cd openssl-1.1.1w && chmod 744 config;} || exit 1
     else
         declare -ra url=(
             "https://github.com/openssl/openssl/releases/download/${openssl_ver}/${openssl_ver}.tar.gz"
         )
+        { _download "${url[@]}" && tar -axf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
     fi
-    { _download "${url[@]}" && tar -axf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
     ./config --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl -fPIC no-shared no-threads || exit 1
     make && make install_sw && return
     exit 1
@@ -275,7 +276,6 @@ check_ca_file(){
 clean_tmp(){
     rm -rf /tmp/${zlib_ver}
     rm -rf /tmp/zlib-static
-    rm -rf /tmp/${openssl_ver}
     rm -rf /tmp/openssl-static
     rm -rf /tmp/${nghttp2_ver}
     rm -rf /tmp/nghttp2-static
@@ -286,7 +286,12 @@ clean_tmp(){
     rm -rf /tmp/${libunistring_ver}
     rm -rf /tmp/libunistring-static
     rm -rf /tmp/${cmake_ver}
-    rm -rf /tmp/brotli-static 
+    rm -rf /tmp/brotli-static
+    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+        rm -rf /tmp/openssl-1.1.1w
+    else
+        rm -rf /tmp/${openssl_ver}
+    fi
 }
 
 exclude_curl_in_yum(){
@@ -332,13 +337,12 @@ initializing_build_environment(){
 }
 
 _os_version
-if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
-    openssl_ver="openssl-1.1.1w"
-fi
-readonly openssl_ver
-
 echo "-------------------------------------------"
-echo "openssl      : ${openssl_ver}"
+if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+    echo "openssl      : openssl-1.1.1w"
+else
+    echo "openssl      : ${openssl_ver}"
+fi
 echo "nghttp2      : ${nghttp2_ver}"
 echo "curl         : ${curl_ver}"
 echo "pycurl       : ${pycurl_ver}"
