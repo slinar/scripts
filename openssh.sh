@@ -1,8 +1,8 @@
 #!/bin/bash
 set -o pipefail
 
-declare -r OPENSSH_VER="openssh-10.2p1"
-declare -r OPENSSL_VER="openssl-3.0.19"
+declare -r OPENSSH_VER="openssh-10.3p1"
+declare -r OPENSSL_VER="openssl-3.0.20"
 
 # Use default sshd_config. If you want to use your sshd_config, please set this to "no" [yes/no]
 declare -r USE_DEFAULT_CONFIG="yes"
@@ -200,6 +200,8 @@ modify_fw(){
     elif systemctl status iptables.service --no-pager --full; then
         echo "modify_iptables(el8)"
         modify_iptables
+    elif systemctl status nftables.service --no-pager --full; then
+        echo -e "\033[1;33m[NOTICE] nftables is currently active. Please ensure TCP port ${SSHD_PORT} is allowed in your ruleset.\033[0m"
     fi
 }
 
