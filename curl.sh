@@ -169,7 +169,7 @@ build_openssl(){
         )
         { _download "${url[@]}" && tar -axf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
     fi
-    ./config --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl -fPIC no-shared no-threads || exit 1
+    ./config --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl -fPIC no-dso no-async no-tests no-shared no-threads no-weak-ssl-ciphers || exit 1
     make && make install_sw && return
     exit 1
 }
@@ -260,7 +260,7 @@ install_curl(){
     export PKG_CONFIG_PATH=/tmp/zlib-static/lib/pkgconfig:/tmp/brotli-static/lib64/pkgconfig:/tmp/nghttp2-static/lib/pkgconfig:/tmp/libidn2-static/lib/pkgconfig
     export PKG_CONFIG="pkg-config --static"
     ./configure --prefix=/usr --libdir=/usr/lib64 --enable-optimize --with-ca-bundle=/etc/pki/tls/certs/ca-bundle.crt --with-ssl=/tmp/openssl-static --with-nghttp2 --with-brotli --with-libidn2 --without-libpsl || exit 1
-    make && make install && return
+    make && make install-strip && return
     exit 1
 }
 

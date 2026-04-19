@@ -162,6 +162,8 @@ build_nginx(){
     configure_nginx
     make || exit $?
     mkdir -p /var/cache/nginx
+    strip objs/nginx
+    strip --strip-unneeded objs/*.so
 }
 
 clean_tmp(){

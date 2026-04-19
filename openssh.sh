@@ -164,7 +164,7 @@ build_openssl(){
     [ "${BUILD_WITHOUT_OPENSSL}" = yes ] && return
     cd /tmp || exit 1
     { _download "${OPENSSL_URL[@]}" && tar -axf ${OPENSSL_VER}.tar.gz && cd ${OPENSSL_VER} && chmod 744 config;} || exit 1
-    ./config --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl -fPIC no-shared no-threads no-weak-ssl-ciphers \
+    ./config --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl no-dso no-async no-shared no-threads no-weak-ssl-ciphers no-engine no-tests no-srp no-comp no-legacy no-module \
     || { echo "Failed to config openssl";exit 1;}
     make && make install_sw && return
     exit 1
@@ -490,7 +490,7 @@ conf_openssh(){
     [ "${BUILD_WITHOUT_OPENSSL}" = yes ] && openssl_option='--without-openssl'
     [ "${BUILD_WITHOUT_OPENSSL}" = no ] && openssl_option="--with-ssl-dir=/tmp/openssl-static"
     export CFLAGS="-O3 -Wno-error=unknown-pragmas -Wno-error=sign-compare -Wno-error=cast-align"
-    ./configure --prefix=/usr --sysconfdir=/etc/ssh ${openssl_option} ${pam_option} --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd --without-zlib --with-pie \
+    ./configure --prefix=/usr --libexecdir=/usr/libexec/openssh --sysconfdir=/etc/ssh ${openssl_option} ${pam_option} --with-privsep-path=/var/empty/sshd --with-privsep-user=sshd --without-zlib --with-pie \
     || { echo "Failed to configure openssh";exit 1;}
 }
 
