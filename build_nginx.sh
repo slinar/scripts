@@ -104,6 +104,7 @@ build_ext_modules(){
     --add-dynamic-module=/tmp/nginx-dav-ext-module-3.0.0 \
     --add-dynamic-module=/tmp/headers-more-nginx-module-0.38 || exit 1
     make modules || exit 1
+    strip --strip-unneeded objs/*.so
 }
 
 # https://nginx.org/en/docs/configure.html
@@ -163,7 +164,6 @@ build_nginx(){
     make || exit $?
     mkdir -p /var/cache/nginx
     strip objs/nginx
-    strip --strip-unneeded objs/*.so
 }
 
 clean_tmp(){
