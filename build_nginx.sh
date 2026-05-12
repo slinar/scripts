@@ -77,21 +77,16 @@ download_pcre(){
 build_ext_modules(){
     cd /tmp || exit 1
     declare -ra fancyindex_url=(
-        "https://github.com/aperezdc/ngx-fancyindex/releases/download/v0.5.2/ngx-fancyindex-0.5.2.tar.xz"
-    )
-    declare -ra dav_exturl=(
-        "https://github.com/arut/nginx-dav-ext-module/archive/refs/tags/v3.0.0.tar.gz"
+        "https://github.com/aperezdc/ngx-fancyindex/releases/download/v0.6.0/ngx-fancyindex-0.6.0.tar.xz"
     )
     declare -ra headers_more_url=(
-        "https://github.com/openresty/headers-more-nginx-module/archive/refs/tags/v0.38.tar.gz"
+        "https://github.com/openresty/headers-more-nginx-module/archive/refs/tags/v0.39.tar.gz"
     )
 
-    { _download "${fancyindex_url[@]}" && tar -axf ngx-fancyindex-0.5.2.tar.xz;} || exit 1
-    { _download "${dav_exturl[@]}" && tar -axf v3.0.0.tar.gz;} || exit 1
-    { _download "${headers_more_url[@]}" && tar -axf v0.38.tar.gz;} || exit 1
-    [ -f /tmp/ngx-fancyindex-0.5.2/config ] || { ls /tmp/ngx-fancyindex-0.5.2/config; exit 1;}
-    [ -f /tmp/nginx-dav-ext-module-3.0.0/config ] || { ls /tmp/nginx-dav-ext-module-3.0.0/config; exit 1;}
-    [ -f /tmp/headers-more-nginx-module-0.38/config ] || { ls /tmp/headers-more-nginx-module-0.38/config; exit 1;}
+    { _download "${fancyindex_url[@]}" && tar -axf ngx-fancyindex-0.6.0.tar.xz;} || exit 1
+    { _download "${headers_more_url[@]}" && tar -axf v0.39.tar.gz;} || exit 1
+    [ -f /tmp/ngx-fancyindex-0.6.0/config ] || exit 1
+    [ -f /tmp/headers-more-nginx-module-0.39/config ] || exit 1
     
     cd /tmp/${nginx_ver} || exit 1
     ./configure \
@@ -100,9 +95,8 @@ build_ext_modules(){
     --with-pcre=/tmp/${pcre2_ver} \
     --with-http_dav_module \
     --with-cc-opt="-O3 -pipe -fPIC" \
-    --add-dynamic-module=/tmp/ngx-fancyindex-0.5.2 \
-    --add-dynamic-module=/tmp/nginx-dav-ext-module-3.0.0 \
-    --add-dynamic-module=/tmp/headers-more-nginx-module-0.38 || exit 1
+    --add-dynamic-module=/tmp/ngx-fancyindex-0.6.0 \
+    --add-dynamic-module=/tmp/headers-more-nginx-module-0.39 || exit 1
     make modules || exit 1
     strip --strip-unneeded objs/*.so
 }
@@ -146,7 +140,7 @@ configure_nginx(){
     --with-stream_ssl_preread_module \
     --with-zlib=/tmp/${zlib_ver} \
     --with-pcre=/tmp/${pcre2_ver} \
-    --with-openssl=/tmp/${libressl_ver} \
+    --with-openssl=/tmp/${openssl_ver} \
     --with-cc-opt="-O3 -pipe" \
     || { echo "configure ${nginx_ver} failed!";exit 1;}
 }
@@ -167,23 +161,19 @@ build_nginx(){
 }
 
 clean_tmp(){
-    rm -rf "/tmp/${openssl_ver}"
-    rm -rf "/tmp/${zlib_ver}"
-    rm -rf "/tmp/${pcre2_ver}"
-    rm -rf "/tmp/${nginx_ver}"
-    rm -rf "/tmp/${libressl_ver}"
-    rm -rf "/tmp/ngx-fancyindex-0.5.2"
-    rm -rf "/tmp/nginx-dav-ext-module-3.0.0"
-    rm -rf "/tmp/headers-more-nginx-module-0.38"
-    rm -rf "/tmp/libressl-static"
-}
-
-list_objs(){
-    ls -l /tmp/${nginx_ver}/objs
+    rm -rf /tmp/${zlib_ver}
+    rm -rf /tmp/zlib-static
+    rm -rf /tmp/${pcre2_ver}
+    rm -rf /tmp/pcre2-static
+    rm -rf /tmp/${openssl_ver}
+    rm -rf /tmp/openssl-static
+    rm -rf /tmp/${nginx_ver}
+    rm -rf /tmp/ngx-fancyindex-0.6.0
+    rm -rf /tmp/nginx-dav-ext-module-master
+    rm -rf /tmp/headers-more-nginx-module-0.39
 }
 
 echo
-echo "libressl     : ${libressl_ver}"
 echo "openssl      : ${openssl_ver}"
 echo "nginx        : ${nginx_ver}"
 echo "zlib         : ${zlib_ver} "
@@ -193,15 +183,14 @@ read -r -n 1 -p "Do you want to continue? [y/n]" input
 case $input in
     "y")
         echo
-        yum -y install gcc gcc-c++ perl perl-IPC-Cmd make libxslt-devel ca-certificates || exit 1
+        yum -y install gcc gcc-c++ perl perl-IPC-Cmd make unzip libxslt-devel ca-certificates || exit 1
         yum -y update nss
         clean_tmp
         download_zlib
         download_pcre
-        download_libressl
+        download_openssl
         build_nginx
         build_ext_modules
-        list_objs
         echo 'completed'
         ;;
     *)
