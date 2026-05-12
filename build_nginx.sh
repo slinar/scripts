@@ -169,7 +169,6 @@ clean_tmp(){
     rm -rf /tmp/openssl-static
     rm -rf /tmp/${nginx_ver}
     rm -rf /tmp/ngx-fancyindex-0.6.0
-    rm -rf /tmp/nginx-dav-ext-module-master
     rm -rf /tmp/headers-more-nginx-module-0.39
 }
 
