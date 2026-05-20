@@ -1,7 +1,7 @@
 #!/bin/bash
 declare -r libressl_ver="libressl-4.2.1"
 declare -r openssl_ver="openssl-3.5.6"
-declare -r nginx_ver="nginx-1.30.0"
+declare -r nginx_ver="nginx-1.30.1"
 declare -r pcre2_ver="pcre2-10.47"
 declare -r zlib_ver="zlib-1.3.2"
 
@@ -43,8 +43,6 @@ _download(){
 cross_env(){
     local TOOLCHAIN_DIR="/tmp/x86_64-linux-musl-cross"
     TARGET="x86_64-linux-musl"
-    # MARCH_OPT="-march=westmere"
-    # ZLIB_OPT="--disable-crcvx"
 
     export PATH="${TOOLCHAIN_DIR}/bin:$PATH"
     export CC="${TARGET}-gcc"
@@ -55,7 +53,7 @@ cross_env(){
     export AS="${TARGET}-as"
     export RANLIB="${TARGET}-ranlib"
     export STRIP="${TARGET}-strip"
-    export CFLAGS="-O3 -fPIC ${MARCH_OPT}"
+    export CFLAGS="-O3 -fPIC"
 
     declare -a url=(
         "https://musl.cc/${TARGET}-cross.tgz"
@@ -72,7 +70,7 @@ build_zlib(){
         "https://www.zlib.net/${zlib_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${zlib_ver}.tar.gz && cd ${zlib_ver} && chmod 744 configure;} || exit 1
-    ./configure --prefix=/tmp/zlib-static --static "${ZLIB_OPT}" && make && make install || exit 1
+    ./configure --prefix=/tmp/zlib-static --static && make && make install || exit 1
 }
 
 build_libressl(){
@@ -93,7 +91,9 @@ build_openssl(){
         "https://github.com/openssl/openssl/releases/download/${openssl_ver}/${openssl_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${openssl_ver}.tar.gz && cd ${openssl_ver} && chmod 744 config;} || exit 1
-    ./Configure "$(echo -n ${TARGET}|awk -F'-' '{print $2"-"$1}')" --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl no-dso no-async no-tests no-shared no-threads no-weak-ssl-ciphers no-engine no-module no-comp no-zlib no-ssl3 no-tls1 no-tls1_1 no-dtls no-psk no-srp no-idea no-rc2 no-rc4 no-bf no-cast no-md4 no-mdc2 no-camellia no-seed no-deprecated || exit 1
+    ./Configure "$(echo -n ${TARGET}|awk -F'-' '{print $2"-"$1}')" --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl \
+    no-dso no-async no-tests no-shared no-threads no-weak-ssl-ciphers no-engine no-module no-comp no-zlib no-ssl3 no-tls1 no-tls1_1 no-dtls no-psk no-srp no-idea no-rc2 no-rc4 no-bf no-cast no-md4 no-mdc2 no-camellia no-seed no-deprecated \
+    || exit 1
     make && make install_sw && return
     exit 1
 }
@@ -104,7 +104,7 @@ build_pcre(){
         "https://github.com/PCRE2Project/pcre2/releases/download/${pcre2_ver}/${pcre2_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${pcre2_ver}.tar.gz && cd ${pcre2_ver} && chmod 744 configure;} || exit 1
-    ./configure --host="${TARGET}" --prefix=/tmp/pcre2-static --enable-shared=no --enable-static=yes --with-pic && make && make install || exit 1
+    ./configure --host="${TARGET}" --prefix=/tmp/pcre2-static --enable-shared=no --enable-static=yes --disable-unicode --with-pic && make && make install || exit 1
 }
 
 download_ext_modules(){
@@ -156,7 +156,7 @@ configure_nginx(){
     --add-module=/tmp/ngx-fancyindex-0.6.0 \
     --with-cc="${TARGET}-gcc -fPIE -static-pie" \
     --with-cpp="${TARGET}-cpp" \
-    --with-cc-opt="-I/tmp/openssl-static/include -I/tmp/zlib-static/include -I/tmp/pcre2-static/include -O3 -pipe ${MARCH_OPT}" \
+    --with-cc-opt="-I/tmp/openssl-static/include -I/tmp/zlib-static/include -I/tmp/pcre2-static/include -O3 -pipe" \
     --with-ld-opt="-L/tmp/openssl-static/lib64 -L/tmp/zlib-static/lib -L/tmp/pcre2-static/lib" \
     || { echo "configure ${nginx_ver} failed!";exit 1;}
 }

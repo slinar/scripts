@@ -1,7 +1,7 @@
 #!/bin/bash
 declare -r libressl_ver="libressl-4.2.1"
 declare -r openssl_ver="openssl-3.5.6"
-declare -r nginx_ver="nginx-1.30.0"
+declare -r nginx_ver="nginx-1.30.1"
 declare -r pcre2_ver="pcre2-10.47"
 declare -r zlib_ver="zlib-1.3.2"
 
@@ -141,7 +141,9 @@ configure_nginx(){
     --with-zlib=/tmp/${zlib_ver} \
     --with-pcre=/tmp/${pcre2_ver} \
     --with-openssl=/tmp/${openssl_ver} \
-    --with-cc-opt="-O3 -pipe" \
+    --with-pcre-opt="-fPIC" \
+    --with-cc-opt="-O3 -fPIE -pipe" \
+    --with-ld-opt="-pie" \
     || { echo "configure ${nginx_ver} failed!";exit 1;}
 }
 
