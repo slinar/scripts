@@ -568,7 +568,7 @@ pre_clean_tmp(){
 }
 
 test_curl(){
-    [ -x "$(which --skip-alias curl)" ] || exit 1
+    /usr/bin/env curl -V || exit 1
 }
 
 # Get the current sshd port, using the first value.If the current sshd port is not available then the default port is used
