@@ -37,6 +37,7 @@ _os_version(){
     if [ -f /etc/os-release ]; then
         # shellcheck disable=SC1091
         source /etc/os-release
+        [[ "${ID_LIKE}" == *rhel* ]] || { echo "ID_LIKE: [${ID_LIKE}] Unknown"; exit 3;}
         [ -n "${VERSION_ID}" ] && OS_VER=${VERSION_ID%%.*}
         [[ "${OS_VER}" =~ ^(6|7|8|9|10)$ ]] && readonly OS_VER && return
         echo "Unrecognized VERSION_ID: ${VERSION_ID}"
