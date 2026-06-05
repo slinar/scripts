@@ -623,7 +623,11 @@ ssh2-enum-algos:
 EOF
 # echo 'Please set PermitRootLogin explicitly (without #), otherwise it will be set to yes'
 echo
-read -r -n 1 -p "Please confirm the above information. do you want to continue? [y/n]" input
+if [ -t 0 ]; then
+    read -r -n 1 -p "Please confirm the above information. do you want to continue? [y/n]" input
+else
+    input="y"
+fi
 case $input in
     "y")
         echo
