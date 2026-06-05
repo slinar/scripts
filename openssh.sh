@@ -518,7 +518,7 @@ exclude_openssh(){
     if grep -q '^exclude=.*' ${yum_conf_file}; then
         local result
         result=$(grep "^exclude=" ${yum_conf_file}|awk -F = '{print $2}'|xargs echo -n)
-        result="${result} openssh openssh-clients openssh-server"
+        result="${result} openssh openssh-clients openssh-server crypto-policies crypto-policies-scripts"
         result=$(echo -n "${result}"|tr ' ' '\n'|sort -u|tr '\n' ' '|xargs echo -n)
         sed -i 's/^exclude=.*/exclude='"${result}"'/' ${yum_conf_file}
     else
