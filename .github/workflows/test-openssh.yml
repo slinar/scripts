@@ -38,4 +38,4 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             ${{ matrix.image }} \
-            /bin/bash -c "chmod +x ./openssh.sh && ./openssh.sh"
+            /bin/bash -c "chmod +x ./openssh.sh && bash -x openssh.sh"
