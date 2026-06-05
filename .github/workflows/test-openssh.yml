@@ -13,17 +13,22 @@ on:
 
 jobs:
   test:
-    name: Test on ${{ matrix.os }}
+    name: Test on ${{ matrix.os_name }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os:
-          - centos:6
-          - centos:7
-          - rockylinux:8
-          - rockylinux:9
-          - rockylinux:10
+        include:
+          - os_name: centos:6
+            image: centos:centos6.9
+          - os_name: centos:7
+            image: centos:centos7.9.2009
+          - os_name: rockylinux:8
+            image: rockylinux/rockylinux:8.10-minimal
+          - os_name: rockylinux:9
+            image: rockylinux/rockylinux:9.7-minimal
+          - os_name: rockylinux:10
+            image: rockylinux/rockylinux:10.1-minimal
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,5 +37,5 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
-            ${{ matrix.os }} \
+            ${{ matrix.image }} \
             /bin/bash -c "chmod +x ./openssh.sh && ./openssh.sh"
