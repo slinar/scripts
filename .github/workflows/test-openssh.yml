@@ -12,6 +12,13 @@ on:
   workflow_dispatch:
 
 jobs:
+  shellcheck:
+    name: Run ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4      
+      - name: Lint openssh.sh
+        run: shellcheck openssh.sh
   test:
     name: Test on ${{ matrix.os_name }}
     runs-on: ubuntu-latest
@@ -38,4 +45,4 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             ${{ matrix.image }} \
-            /bin/bash -c "chmod +x ./openssh.sh && bash -x openssh.sh"
+            /bin/bash -c "chmod +x ./openssh.sh && ./openssh.sh"
