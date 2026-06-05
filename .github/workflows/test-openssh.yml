@@ -1,0 +1,41 @@
+name: Test OpenSSH Script
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths:
+      - 'openssh.sh'
+  pull_request:
+    branches: [ "main", "master" ]
+    paths:
+      - 'openssh.sh'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Test on ${{ matrix.os_name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os_name: centos:6
+            image: centos:6.10
+          - os_name: centos:7
+            image: centos:7.9.2009
+          - os_name: rockylinux:8
+            image: rockylinux/rockylinux:8
+          - os_name: rockylinux:9
+            image: rockylinux/rockylinux:9
+          - os_name: rockylinux:10
+            image: rockylinux/rockylinux:10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Run Script and Check Exit Code
+        run: |          
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            ${{ matrix.image }} \
+            /bin/bash -c "chmod +x ./openssh.sh && printf 'y' | bash ./openssh.sh"
