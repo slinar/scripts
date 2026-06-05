@@ -20,15 +20,15 @@ jobs:
       matrix:
         include:
           - os_name: centos:6
-            image: centos:centos6.9
+            image: centos:6.10
           - os_name: centos:7
-            image: centos:centos7.9.2009
+            image: centos:7.9.2009
           - os_name: rockylinux:8
-            image: rockylinux/rockylinux:8.10-minimal
+            image: rockylinux/rockylinux:8
           - os_name: rockylinux:9
-            image: rockylinux/rockylinux:9.7-minimal
+            image: rockylinux/rockylinux:9
           - os_name: rockylinux:10
-            image: rockylinux/rockylinux:10.1-minimal
+            image: rockylinux/rockylinux:10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,4 +38,4 @@ jobs:
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             ${{ matrix.image }} \
-            /bin/bash -c "chmod +x ./openssh.sh && ./openssh.sh"
+            /bin/bash -c "chmod +x ./openssh.sh && printf 'y' | bash ./openssh.sh"
