@@ -34,11 +34,18 @@ _check_privilege(){
 }
 
 _os_version(){
-    local -r kernel_release="$(uname -r)"
-    [[ ${kernel_release} =~ el[1-9][0-9_.]+ ]] || exit 3
-    OS_VER="$(echo -n "${kernel_release}"|awk -F el '{print $2}'|awk -F '[._]' '{print $1}')"
-    [[ ${OS_VER} =~ ^[0-9]{1,2}$ && ${OS_VER} -gt 0 && ${OS_VER} -lt 99 ]] || exit 3
-    readonly OS_VER
+    if [ -f /etc/os-release ]; then
+        # shellcheck disable=SC1091
+        source /etc/os-release
+        [ -n "${VERSION_ID}" ] && OS_VER=${VERSION_ID%%.*}
+        [[ "${OS_VER}" =~ ^(6|7|8|9|10)$ ]] && readonly OS_VER && return
+        echo "Unrecognized VERSION_ID: ${VERSION_ID}"
+    elif [ -f /etc/redhat-release ]; then
+        OS_VER="$(grep -oP 'release \K\d+' /etc/redhat-release)"
+        [ "${OS_VER}" = 6 ] && readonly OS_VER && return
+        echo "Unable to extract OS_VER from /etc/redhat-release" && cat /etc/redhat-release 
+    fi
+    exit 3
 }
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
