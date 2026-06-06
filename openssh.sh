@@ -16,6 +16,8 @@ declare -r BUILD_WITHOUT_OPENSSL="no"
 # Use the old host_key; do not regenerate a new host_key. [yes/no]
 declare -r PRESERVE_HOST_KEYS="no"
 
+declare -i OS_VER=0
+
 # Download url
 declare -ra OPENSSL_URL=(
     "https://github.com/openssl/openssl/releases/download/${OPENSSL_VER}/${OPENSSL_VER}.tar.gz"
@@ -39,11 +41,11 @@ _os_version(){
         source /etc/os-release
         [[ "${ID_LIKE}" == *rhel* ]] || { echo "ID_LIKE: [${ID_LIKE}] Unknown"; exit 3;}
         [ -n "${VERSION_ID}" ] && OS_VER=${VERSION_ID%%.*}
-        [[ "${OS_VER}" =~ ^(6|7|8|9|10)$ ]] && readonly OS_VER && return
+        [ "${OS_VER}" -ge 6 ] && [ "${OS_VER}" -le 10 ] && readonly OS_VER && return
         echo "Unrecognized VERSION_ID: ${VERSION_ID}"
     elif [ -f /etc/redhat-release ]; then
         OS_VER="$(grep -oP 'release \K\d+' /etc/redhat-release)"
-        [ "${OS_VER}" = 6 ] && readonly OS_VER && return
+        [ "${OS_VER}" -eq 6 ] && readonly OS_VER && return
         echo "Unable to extract OS_VER from /etc/redhat-release" && cat /etc/redhat-release 
     fi
     exit 3
@@ -157,13 +159,13 @@ EOF
 }
 
 check_yum_repositories(){
-    if [ "${OS_VER}" = 6 ] || [ "${OS_VER}" = 7 ]; then
+    if [ "${OS_VER}" -le 7 ]; then
         if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then
             yum makecache && return
+            mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
         fi
-        mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
-        [ "${OS_VER}" = 6 ] && write_CentOS_Base_6
-        [ "${OS_VER}" = 7 ] && write_CentOS_Base_7
+        [ "${OS_VER}" -eq 6 ] && write_CentOS_Base_6
+        [ "${OS_VER}" -eq 7 ] && write_CentOS_Base_7
         yum clean all && yum makecache || exit 1
     fi
 }
@@ -199,7 +201,7 @@ modify_firewalld(){
 }
 
 modify_fw(){
-    if [ "${OS_VER}" = 6 ]; then
+    if [ "${OS_VER}" -eq 6 ]; then
         echo "modify_iptables(el6)"
         modify_iptables
     elif systemctl status firewalld.service --no-pager --full; then
@@ -336,15 +338,11 @@ EOF
 
 modify_sshd_pam(){
     [ "${BUILD_WITH_PAM}" = no ] && rm -f /etc/pam.d/sshd && return
-    if [ "${OS_VER}" = 6 ]; then
+    if [ "${OS_VER}" -eq 6 ]; then
         modify_sshd_pam_6
-    elif [ "${OS_VER}" = 7 ];then
+    elif [ "${OS_VER}" -eq 7 ];then
         modify_sshd_pam_7
-    elif [ "${OS_VER}" = 8 ];then
-        modify_sshd_pam_8
-    elif [ "${OS_VER}" = 9 ];then
-        modify_sshd_pam_8
-    elif [ "${OS_VER}" = 10 ];then
+    elif [ "${OS_VER}" -ge 8 ];then
         modify_sshd_pam_8
     fi
     chown root:root /etc/pam.d/sshd
@@ -409,7 +407,7 @@ modify_el6_sshd_init(){
 sshd_init(){
     case "$1" in
         "install")
-            if [ "${OS_VER}" = 6 ]; then
+            if [ "${OS_VER}" -eq 6 ]; then
                 cp -f /tmp/${OPENSSH_VER}/contrib/redhat/sshd.init /etc/rc.d/init.d/sshd
                 modify_el6_sshd_init
                 chkconfig --add sshd
@@ -423,7 +421,7 @@ sshd_init(){
             fi
             ;;
         "uninstall")
-            if [ "${OS_VER}" = 6 ]; then
+            if [ "${OS_VER}" -eq 6 ]; then
                 chkconfig --del sshd &> /dev/null
                 rm -f /etc/rc.d/init.d/sshd
             else
@@ -440,21 +438,21 @@ sshd_init(){
             fi
             ;;
         "status")
-            if [ "${OS_VER}" = 6 ]; then
+            if [ "${OS_VER}" -eq 6 ]; then
                 service sshd status
             else
                 systemctl status sshd.service --no-pager --full
             fi
             ;;
         "start")
-            if [ "${OS_VER}" = 6 ]; then
+            if [ "${OS_VER}" -eq 6 ]; then
                 service sshd start
             else
                 systemctl start sshd.service
             fi
             ;;
         "stop")
-            if [ "${OS_VER}" = 6 ]; then
+            if [ "${OS_VER}" -eq 6 ]; then
                 service sshd stop
             else
                 systemctl stop sshd.service
@@ -519,7 +517,7 @@ select_config(){
 exclude_openssh(){
     local yum_conf_file
     yum_conf_file=/etc/yum.conf
-    if [ "${OS_VER}" != 6 ] && [ "${OS_VER}" != 7 ]; then
+    if [ "${OS_VER}" -ge 8 ]; then
         yum_conf_file=/etc/dnf/dnf.conf
     fi
     echo "Exclude openssh, openssh-clients, openssh-server from ${yum_conf_file}"
@@ -580,9 +578,13 @@ get_current_sshd_port(){
 }
 
 initializing_build_environment(){
-    yum -y install gcc tar perl perl-IPC-Cmd perl-Time-Piece make pam-devel ca-certificates || exit 1
-    if [ "${OS_VER}" = 6 ] || [ "${OS_VER}" = 7 ]; then
-        yum -y install nss
+    yum -y install gcc tar perl perl-IPC-Cmd perl-Time-Piece make pam-devel ca-certificates iproute || exit 1
+    if [ "${OS_VER}" -eq 6 ]; then
+        yum -y install nss procps
+    elif [ "${OS_VER}" -eq 7 ]; then
+        yum -y install nss procps-ng
+    else
+        yum -y install procps-ng
     fi
 }
 

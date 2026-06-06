@@ -3,13 +3,15 @@ set -o pipefail
 
 declare -r zlib_ver="zlib-1.3.2"
 declare -r openssl_ver="openssl-3.0.20"
-declare -r nghttp2_ver="nghttp2-1.68.1"
+declare -r nghttp2_ver="nghttp2-1.69.0"
 declare -r curl_ver="curl-8.17.0"
 declare -r pycurl_ver="REL_7_43_0_5"
 declare -r libunistring_ver="libunistring-1.4.2"
 declare -r libidn2_ver="libidn2-2.3.8"
 declare -r brotli_ver="v1.1.0"
 declare -r cmake_ver="cmake-3.27.9-linux-x86_64"
+
+declare -i OS_VER=0
 
 _checkPrivilege(){
     test "$(id -u)" -eq 0 && return
@@ -18,9 +20,19 @@ _checkPrivilege(){
 }
 
 _os_version(){
-    [[ $(uname -r) =~ el[1-9][0-9_.]+ ]] || { echo "Unrecognized kernel: $(uname -r)"; exit 1;}
-    printf -v os_ver '%d' "$(uname -r|awk -F el '{print $2}'|awk -F '[._]' '{print $1}')" || exit 1
-    readonly os_ver
+    if [ -f /etc/os-release ]; then
+        # shellcheck disable=SC1091
+        source /etc/os-release
+        [[ "${ID_LIKE}" == *rhel* ]] || { echo "ID_LIKE: [${ID_LIKE}] Unknown"; exit 3;}
+        [ -n "${VERSION_ID}" ] && OS_VER=${VERSION_ID%%.*}
+        [ "${OS_VER}" -ge 6 ] && [ "${OS_VER}" -le 10 ] && readonly OS_VER && return
+        echo "Unrecognized VERSION_ID: ${VERSION_ID}"
+    elif [ -f /etc/redhat-release ]; then
+        OS_VER="$(grep -oP 'release \K\d+' /etc/redhat-release)"
+        [ "${OS_VER}" -eq 6 ] && readonly OS_VER && return
+        echo "Unable to extract OS_VER from /etc/redhat-release" && cat /etc/redhat-release 
+    fi
+    exit 3
 }
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
@@ -131,13 +143,13 @@ EOF
 }
 
 check_yum_repositories(){
-    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+    if [ "${OS_VER}" -le 7 ]; then
         if [ -f /etc/yum.repos.d/CentOS-Base.repo ]; then
             yum makecache && return
+            mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
         fi
-        mv -f /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak >/dev/null 2>&1
-        [ "${os_ver}" = 6 ] && write_CentOS_Base_6
-        [ "${os_ver}" = 7 ] && write_CentOS_Base_7
+        [ "${OS_VER}" -eq 6 ] && write_CentOS_Base_6
+        [ "${OS_VER}" -eq 7 ] && write_CentOS_Base_7
         yum clean all && yum makecache || exit 1
     fi
 }
@@ -158,7 +170,7 @@ build_zlib(){
 
 build_openssl(){
     cd /tmp || exit 1
-    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+    if [ "${OS_VER}" -le 7 ]; then
         declare -ra url=(
             "https://github.com/openssl/openssl/releases/download/OpenSSL_1_1_1w/openssl-1.1.1w.tar.gz"
         )
@@ -240,7 +252,7 @@ download_cmake(){
 }
 
 install_pycurl(){
-    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+    if [ "${OS_VER}" -le 7 ]; then
         cd /tmp || exit 1
         declare -ra url=(
             "https://github.com/pycurl/pycurl/archive/refs/tags/${pycurl_ver}.tar.gz"
@@ -287,7 +299,7 @@ clean_tmp(){
     rm -rf /tmp/libunistring-static
     rm -rf /tmp/${cmake_ver}
     rm -rf /tmp/brotli-static
-    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+    if [ "${OS_VER}" -le 7 ]; then
         rm -rf /tmp/openssl-1.1.1w
     else
         rm -rf /tmp/${openssl_ver}
@@ -297,7 +309,7 @@ clean_tmp(){
 exclude_curl_in_yum(){
     local yum_conf_file
     yum_conf_file=/etc/yum.conf
-    if [ "${os_ver}" != 6 ] && [ "${os_ver}" != 7 ]; then
+    if [ "${OS_VER}" -ge 8 ]; then
         yum_conf_file=/etc/dnf/dnf.conf
     fi
     echo "Exclude curl and libcurl from ${yum_conf_file}"
@@ -314,7 +326,7 @@ exclude_curl_in_yum(){
 }
 
 update_ca_file(){
-    if [ "${os_ver}" = 6 ]; then
+    if [ "${OS_VER}" -eq 6 ]; then
         cd /tmp || exit 1
         local ca_path
         local ca_url="https://curl.se/ca/cacert.pem"
@@ -330,7 +342,7 @@ update_ca_file(){
 
 initializing_build_environment(){
     yum -y install gcc gcc-c++ perl perl-IPC-Cmd perl-Time-Piece make ca-certificates pkgconfig || exit 1
-    if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ];then
+    if [ "${OS_VER}" -le 7 ]; then
         yum -y install python-devel curl libcurl python-pycurl nss || exit 1
     fi
     export CFLAGS="-fPIC -O3 -Wno-error=unknown-pragmas -Wno-error=sign-compare -Wno-error=cast-align"
@@ -338,7 +350,7 @@ initializing_build_environment(){
 
 _os_version
 echo "-------------------------------------------"
-if [ "${os_ver}" = 6 ] || [ "${os_ver}" = 7 ]; then
+if [ "${OS_VER}" -le 7 ]; then
     echo "openssl      : openssl-1.1.1w"
 else
     echo "openssl      : ${openssl_ver}"
@@ -351,7 +363,7 @@ echo "libunistring : ${libunistring_ver}"
 echo "libidn2      : ${libidn2_ver}"
 echo "brotli       : ${brotli_ver}"
 echo "cmake        : ${cmake_ver}"
-echo "os_ver       : ${os_ver}"
+echo "OS_VER       : ${OS_VER}"
 echo "TIME         : $(date +"%Y-%m-%d %H:%M:%S %Z")"
 echo "-------------------------------------------"
 read -r -n 1 -p "Do you want to continue? [y/n/c]" input
