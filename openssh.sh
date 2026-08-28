@@ -362,6 +362,16 @@ modify_sshdconfig(){
     sed -i 's/^[[:space:]#]*Compression[[:space:]]\+.*/Compression no/' /etc/ssh/sshd_config
     sed -i 's/^#\+[[:space:]]*ClientAliveInterval[[:space:]]\+.*/ClientAliveInterval 30/' /etc/ssh/sshd_config
     sed -i 's/^[[:space:]]*TCPKeepAlive[[:space:]]\+no[[:space:]]*$/#TCPKeepAlive yes/' /etc/ssh/sshd_config
+    sed -i '
+1h; 1!H; $!d; x
+
+/^[ \t]*Subsystem[ \t]\+sftp[ \t]\+internal-sftp\b/M {
+    s@^\([ \t]*#\+[ \t]*\)Subsystem[ \t]\+sftp\b.*@\1Subsystem      sftp    /usr/libexec/openssh/sftp-server@Mg
+    b
+}
+
+s@^[ \t]*#*[ \t]*Subsystem[ \t]\+sftp\b.*@Subsystem      sftp    /usr/libexec/openssh/sftp-server@Mg
+' /etc/ssh/sshd_config
 }
 
 modify_selinux(){
