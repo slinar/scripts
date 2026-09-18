@@ -2,7 +2,7 @@
 declare -r libressl_ver="libressl-4.3.2"
 declare -r openssl_ver="openssl-3.5.8"
 declare -r nginx_ver="nginx-1.31.6"
-declare -r pcre2_ver="pcre2-10.47"
+declare -r pcre2_ver="pcre2-10.48"
 declare -r zlib_ver="zlib-1.3.2"
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
