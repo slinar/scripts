@@ -2,13 +2,13 @@
 set -o pipefail
 
 declare -r zlib_ver="zlib-1.3.2"
-declare -r openssl_ver="openssl-3.0.21"
+declare -r openssl_ver="openssl-3.0.22"
 declare -r nghttp2_ver="nghttp2-1.69.0"
 declare -r curl_ver="curl-8.17.0"
 declare -r pycurl_ver="REL_7_43_0_5"
 declare -r libunistring_ver="libunistring-1.4.2"
 declare -r libidn2_ver="libidn2-2.3.8"
-declare -r brotli_ver="v1.1.0"
+declare -r brotli_ver="brotli-1.1.0"
 declare -r cmake_ver="cmake-3.27.9-linux-x86_64"
 
 declare -i OS_VER=0
@@ -223,16 +223,13 @@ build_libidn2(){
 
 build_brotli(){
     cd /tmp || exit 1
-    local ver_num
-    brotli_num="$(awk -F v '{print $NF}' <<< ${brotli_ver})"
     declare -ra url=(
-        "https://github.com/google/brotli/archive/refs/tags/${brotli_ver}.tar.gz"
+        "https://github.com/google/brotli/archive/v${brotli_ver#*-}/${brotli_ver}.tar.gz"
     )
-    { _download "${url[@]}" && tar -axf ${brotli_ver}.tar.gz && cd brotli-"${brotli_num}" && [ -f CMakeLists.txt ];} || exit 1
+    { _download "${url[@]}" && tar -axf ${brotli_ver}.tar.gz && cd ${brotli_ver} && [ -f CMakeLists.txt ];} || exit 1
     mkdir -p out && cd out || exit 1
     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/tmp/brotli-static -DBUILD_SHARED_LIBS=OFF .. || exit 1
     cmake --build . --config Release --target install || exit 1
-    cd /tmp && rm -rf brotli-"${brotli_num}"
 }
 
 download_cmake(){
@@ -298,6 +295,7 @@ clean_tmp(){
     rm -rf /tmp/${libunistring_ver}
     rm -rf /tmp/libunistring-static
     rm -rf /tmp/${cmake_ver}
+    rm -rf /tmp/${brotli_ver}
     rm -rf /tmp/brotli-static
     if [ "${OS_VER}" -le 7 ]; then
         rm -rf /tmp/openssl-1.1.1w
