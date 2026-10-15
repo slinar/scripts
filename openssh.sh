@@ -207,13 +207,13 @@ modify_fw(){
     if [ "${OS_VER}" -eq 6 ]; then
         echo "modify_iptables(el6)"
         modify_iptables
-    elif systemctl status firewalld.service --no-pager --full; then
+    elif systemctl is-active --quiet firewalld.service; then
         echo "modify_firewalld"
         modify_firewalld
-    elif systemctl status iptables.service --no-pager --full; then
+    elif systemctl is-active --quiet iptables.service; then
         echo "modify_iptables(el8)"
         modify_iptables
-    elif systemctl status nftables.service --no-pager --full; then
+    elif systemctl is-active --quiet nftables.service; then
         echo -e "\033[1;33m[NOTICE] nftables is currently active. Please ensure TCP port ${SSHD_PORT} is allowed in your ruleset.\033[0m"
     fi
 }
@@ -450,7 +450,7 @@ sshd_init(){
             if [ "${OS_VER}" -eq 6 ]; then
                 service sshd status
             else
-                systemctl status sshd.service --no-pager --full
+                systemctl is-active sshd.service
             fi
             ;;
         "start")
