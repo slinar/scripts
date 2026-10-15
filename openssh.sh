@@ -13,8 +13,11 @@ declare -r BUILD_WITH_PAM="no"
 # Do not use openssl? [yes/no]
 declare -r BUILD_WITHOUT_OPENSSL="no"
 
-# Use the old host_key; do not regenerate a new host_key. [yes/no]
+# Preserve existing hostkey (/etc/ssh/ssh_host_*) to prevent overwrite. [yes/no]
 declare -r PRESERVE_HOST_KEYS="no"
+
+# Preserve existing PAM config (/etc/pam.d/sshd) to prevent overwrite. [yes/no]
+declare -r PRESERVE_PAM_CONFIG="no"
 
 declare -i OS_VER=0
 
@@ -337,7 +340,7 @@ EOF
 }
 
 modify_sshd_pam(){
-    [ "${BUILD_WITH_PAM}" = no ] && rm -f /etc/pam.d/sshd && return
+    [ -f /etc/pam.d/sshd ] && [ "${PRESERVE_PAM_CONFIG}" = yes ] && return
     if [ "${OS_VER}" -eq 6 ]; then
         modify_sshd_pam_6
     elif [ "${OS_VER}" -eq 7 ];then
@@ -475,7 +478,6 @@ sshd_init(){
 }
 
 uninstall_old_openssh(){
-    cp -f /etc/pam.d/sshd /etc/pam.d/sshd_bak &> /dev/null
     mv -f /etc/ssh/ssh_config /etc/ssh/ssh_config_bak &> /dev/null
     mv -f /etc/ssh/sshd_config /etc/ssh/sshd_config_bak &> /dev/null
     rpm -e openssh-server
@@ -610,7 +612,6 @@ echo "USE_DEFAULT_CONFIG    : ${USE_DEFAULT_CONFIG}"
 echo "BUILD_WITHOUT_OPENSSL : ${BUILD_WITHOUT_OPENSSL}"
 echo "PRESERVE_HOST_KEYS    : ${PRESERVE_HOST_KEYS}"
 echo "OS_VER                : ${OS_VER}"
-echo "Backup                : /etc/pam.d/sshd /etc/pam.d/sshd_bak"
 echo "-------------------------------------------"
 
 [ "${BUILD_WITHOUT_OPENSSL}" = yes ] && \
