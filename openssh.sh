@@ -357,11 +357,7 @@ modify_sshdconfig(){
     sed -i 's/^[[:space:]]*#\+[[:space:]]*PermitRootLogin[[:space:]]\+.*/PermitRootLogin yes/' /etc/ssh/sshd_config
     sed -i 's/^[[:space:]]*UseDNS[[:space:]]\+yes[[:space:]]*$/#UseDNS no/' /etc/ssh/sshd_config
     sed -i '/^[[:space:]]*GSSAPI.*/d' /etc/ssh/sshd_config
-    if [ "${BUILD_WITH_PAM}" = yes ]; then
-        sed -i 's/^[[:space:]#]*UsePAM[[:space:]]\+no[[:space:]]*$/UsePAM yes/' /etc/ssh/sshd_config
-    else
-        sed -i 's/^[[:space:]#]*UsePAM[[:space:]]\+yes[[:space:]]*$/#UsePAM no/' /etc/ssh/sshd_config
-    fi
+    [ "${BUILD_WITH_PAM}" = yes ] && sed -i 's/^[[:space:]#]*UsePAM[[:space:]]\+.*/UsePAM yes/' /etc/ssh/sshd_config
     sed -i 's/^[[:space:]#]*Compression[[:space:]]\+.*/Compression no/' /etc/ssh/sshd_config
     sed -i 's/^#\+[[:space:]]*ClientAliveInterval[[:space:]]\+.*/ClientAliveInterval 30/' /etc/ssh/sshd_config
     sed -i 's/^[[:space:]]*TCPKeepAlive[[:space:]]\+no[[:space:]]*$/#TCPKeepAlive yes/' /etc/ssh/sshd_config
