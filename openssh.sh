@@ -611,6 +611,7 @@ echo "BUILD_WITH_PAM        : ${BUILD_WITH_PAM}"
 echo "USE_DEFAULT_CONFIG    : ${USE_DEFAULT_CONFIG}"
 echo "BUILD_WITHOUT_OPENSSL : ${BUILD_WITHOUT_OPENSSL}"
 echo "PRESERVE_HOST_KEYS    : ${PRESERVE_HOST_KEYS}"
+echo "PRESERVE_PAM_CONFIG   : ${PRESERVE_PAM_CONFIG}"
 echo "OS_VER                : ${OS_VER}"
 echo "-------------------------------------------"
 
