@@ -550,6 +550,11 @@ show_host_key(){
         ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
         ssh-keygen -lf /etc/ssh/ssh_host_ecdsa_key.pub
         ssh-keygen -lf /etc/ssh/ssh_host_rsa_key.pub
+        if ! ssh-keygen -lf /etc/ssh/ssh_host_mldsa44_ed25519_key.pub; then
+            rm -f /etc/ssh/ssh_host_mldsa44_ed25519_key /etc/ssh/ssh_host_mldsa44_ed25519_key.pub
+            /usr/bin/ssh-keygen -A
+            ssh-keygen -lf /etc/ssh/ssh_host_mldsa44_ed25519_key.pub
+        fi
     fi
 }
 
