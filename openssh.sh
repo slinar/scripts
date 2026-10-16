@@ -4,14 +4,14 @@ set -o pipefail
 declare -r OPENSSH_VER="openssh-10.6p1"
 declare -r OPENSSL_VER="openssl-3.5.9"
 
-# Use default sshd_config. If you want to use your sshd_config, please set this to "no" [yes/no]
-declare -r USE_DEFAULT_CONFIG="yes"
-
 # Enables PAM support [yes/no]
 declare -r BUILD_WITH_PAM="no"
 
 # Do not use openssl? [yes/no]
 declare -r BUILD_WITHOUT_OPENSSL="no"
+
+# Preserve existing sshd_config (/etc/ssh/sshd_config) to prevent overwrite. [yes/no]
+declare -r PRESERVE_SSHD_CONFIG="no"
 
 # Preserve existing hostkey (/etc/ssh/ssh_host_*) to prevent overwrite. [yes/no]
 declare -r PRESERVE_HOST_KEYS="no"
@@ -509,7 +509,7 @@ conf_openssh(){
 }
 
 select_config(){
-    if [ "${USE_DEFAULT_CONFIG}" = no ] && /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
+    if [ "${PRESERVE_SSHD_CONFIG}" = yes ] && /usr/sbin/sshd -t -f /etc/ssh/sshd_config_bak; then
         echo "The old sshd_config test is successful, use the old sshd_config"
         [ -f /etc/ssh/sshd_config_bak ] && mv -f /etc/ssh/sshd_config_bak /etc/ssh/sshd_config
         [ -f /etc/ssh/ssh_config_bak ] && mv -f /etc/ssh/ssh_config_bak /etc/ssh/ssh_config
@@ -609,8 +609,8 @@ echo "OPENSSL_VER           : ${OPENSSL_VER}"
 echo "OPENSSH_VER           : ${OPENSSH_VER}"
 echo "SSHD_PORT             : ${SSHD_PORT}"
 echo "BUILD_WITH_PAM        : ${BUILD_WITH_PAM}"
-echo "USE_DEFAULT_CONFIG    : ${USE_DEFAULT_CONFIG}"
 echo "BUILD_WITHOUT_OPENSSL : ${BUILD_WITHOUT_OPENSSL}"
+echo "PRESERVE_SSHD_CONFIG  : ${PRESERVE_SSHD_CONFIG}"
 echo "PRESERVE_HOST_KEYS    : ${PRESERVE_HOST_KEYS}"
 echo "PRESERVE_PAM_CONFIG   : ${PRESERVE_PAM_CONFIG}"
 echo "OS_VER                : ${OS_VER}"
