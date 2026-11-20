@@ -1,9 +1,9 @@
 #!/bin/bash
 declare -r libressl_ver="libressl-4.3.2"
 declare -r openssl_ver="openssl-3.5.9"
-declare -r nginx_ver="nginx-1.31.8"
-declare -r pcre2_ver="pcre2-10.48"
-declare -r zlib_ver="zlib-1.3.2"
+declare -r nginx_ver="nginx-1.31.9"
+declare -r pcre2_ver="pcre2-10.49"
+declare -r zlib_ver="zlib-1.4"
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
 _download(){
@@ -70,7 +70,7 @@ build_zlib(){
         "https://www.zlib.net/${zlib_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${zlib_ver}.tar.gz && cd ${zlib_ver} && chmod 744 configure;} || exit 1
-    ./configure --prefix=/tmp/zlib-static --static && make && make install || exit 1
+    ./configure --prefix=/tmp/zlib-static --static && make -j"$(nproc)" && make install || exit 1
 }
 
 build_libressl(){
@@ -82,7 +82,7 @@ build_libressl(){
     )
     { _download "${url[@]}" && tar -axf ${libressl_ver}.tar.gz && cd ${libressl_ver} && chmod 744 configure;} || exit 1
     ./configure --host="${TARGET}" --prefix=/tmp/libressl-static --enable-shared=no --enable-static=yes --disable-tests --with-pic && \
-    make && make install || exit 1
+    make -j"$(nproc)" && make install || exit 1
 }
 
 build_openssl(){
@@ -94,7 +94,7 @@ build_openssl(){
     ./Configure "$(echo -n ${TARGET}|awk -F'-' '{print $2"-"$1}')" --prefix=/tmp/openssl-static --openssldir=/tmp/openssl-static/ssl \
     no-dso no-async no-tests no-shared no-threads no-weak-ssl-ciphers no-engine no-module no-comp no-zlib no-ssl3 no-tls1 no-tls1_1 no-dtls no-psk no-srp no-idea no-rc2 no-rc4 no-bf no-cast no-md4 no-mdc2 no-camellia no-seed no-deprecated \
     || exit 1
-    make && make install_sw && return
+    make -j"$(nproc)" && make install_sw && return
     exit 1
 }
 
@@ -104,7 +104,7 @@ build_pcre(){
         "https://github.com/PCRE2Project/pcre2/releases/download/${pcre2_ver}/${pcre2_ver}.tar.gz"
     )
     { _download "${url[@]}" && tar -axf ${pcre2_ver}.tar.gz && cd ${pcre2_ver} && chmod 744 configure;} || exit 1
-    ./configure --host="${TARGET}" --prefix=/tmp/pcre2-static --enable-shared=no --enable-static=yes --disable-unicode --with-pic && make && make install || exit 1
+    ./configure --host="${TARGET}" --prefix=/tmp/pcre2-static --enable-shared=no --enable-static=yes --disable-unicode --with-pic && make -j"$(nproc)" && make install || exit 1
 }
 
 download_ext_modules(){
@@ -171,7 +171,7 @@ build_nginx(){
     mkdir -p /var/cache/nginx
     useradd -d /var/cache/nginx -s /sbin/nologin -c 'nginx user' nginx
     configure_nginx
-    make || exit $?
+    make -j"$(nproc)" || exit $?
     mkdir -p /var/cache/nginx
     ${STRIP} objs/nginx
 }

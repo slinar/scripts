@@ -1,9 +1,9 @@
 #!/bin/bash
 declare -r libressl_ver="libressl-4.3.2"
 declare -r openssl_ver="openssl-3.5.9"
-declare -r nginx_ver="nginx-1.31.8"
-declare -r pcre2_ver="pcre2-10.48"
-declare -r zlib_ver="zlib-1.3.2"
+declare -r nginx_ver="nginx-1.31.9"
+declare -r pcre2_ver="pcre2-10.49"
+declare -r zlib_ver="zlib-1.4"
 
 # Generic download function, the parameter is an array of URLs, download to the current directory
 _download(){
