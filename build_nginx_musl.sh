@@ -197,7 +197,7 @@ read -r -n 1 -p "Do you want to continue? [y/n]" input
 case $input in
     "y")
         echo
-        yum -y install perl perl-IPC-Cmd make ca-certificates || exit 1
+        yum -y install perl perl-IPC-Cmd perl-Time-Piece make tar gzip xz ca-certificates || exit 1
         clean_tmp
         cross_env
         download_ext_modules

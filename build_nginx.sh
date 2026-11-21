@@ -1,5 +1,5 @@
 #!/bin/bash
-declare -r libressl_ver="libressl-4.3.2"
+declare -r libressl_ver="libressl-4.4.1"
 declare -r openssl_ver="openssl-3.5.9"
 declare -r nginx_ver="nginx-1.31.9"
 declare -r pcre2_ver="pcre2-10.49"
@@ -80,13 +80,13 @@ build_ext_modules(){
         "https://github.com/aperezdc/ngx-fancyindex/releases/download/v0.6.0/ngx-fancyindex-0.6.0.tar.xz"
     )
     declare -ra headers_more_url=(
-        "https://github.com/openresty/headers-more-nginx-module/archive/refs/tags/v0.39.tar.gz"
+        "https://github.com/openresty/headers-more-nginx-module/archive/refs/tags/v0.42.tar.gz"
     )
 
     { _download "${fancyindex_url[@]}" && tar -axf ngx-fancyindex-0.6.0.tar.xz;} || exit 1
-    { _download "${headers_more_url[@]}" && tar -axf v0.39.tar.gz;} || exit 1
+    { _download "${headers_more_url[@]}" && tar -axf v0.42.tar.gz;} || exit 1
     [ -f /tmp/ngx-fancyindex-0.6.0/config ] || exit 1
-    [ -f /tmp/headers-more-nginx-module-0.39/config ] || exit 1
+    [ -f /tmp/headers-more-nginx-module-0.42/config ] || exit 1
     
     cd /tmp/${nginx_ver} || exit 1
     ./configure \
@@ -96,7 +96,7 @@ build_ext_modules(){
     --with-http_dav_module \
     --with-cc-opt="-O3 -pipe -fPIC" \
     --add-dynamic-module=/tmp/ngx-fancyindex-0.6.0 \
-    --add-dynamic-module=/tmp/headers-more-nginx-module-0.39 || exit 1
+    --add-dynamic-module=/tmp/headers-more-nginx-module-0.42 || exit 1
     make modules || exit 1
     strip --strip-unneeded objs/*.so
 }
@@ -157,7 +157,7 @@ build_nginx(){
     mkdir -p /var/cache/nginx
     useradd -d /var/cache/nginx -s /sbin/nologin -c 'nginx user' nginx
     configure_nginx
-    make || exit $?
+    make -j"$(nproc)" || exit $?
     mkdir -p /var/cache/nginx
     strip objs/nginx
 }
@@ -171,7 +171,7 @@ clean_tmp(){
     rm -rf /tmp/openssl-static
     rm -rf /tmp/${nginx_ver}
     rm -rf /tmp/ngx-fancyindex-0.6.0
-    rm -rf /tmp/headers-more-nginx-module-0.39
+    rm -rf /tmp/headers-more-nginx-module-0.42
 }
 
 echo
@@ -184,7 +184,7 @@ read -r -n 1 -p "Do you want to continue? [y/n]" input
 case $input in
     "y")
         echo
-        yum -y install gcc gcc-c++ perl perl-IPC-Cmd make unzip libxslt-devel ca-certificates || exit 1
+        yum -y install gcc gcc-c++ perl perl-IPC-Cmd perl-Time-Piece make tar gzip xz libxslt-devel ca-certificates || exit 1
         yum -y update nss
         clean_tmp
         download_zlib
